@@ -204,61 +204,59 @@ def build_catalog(
                 extra={"datastore_name": datastore_name},
             )
         )
-        try:
-            offering_items, offering_names = _datastore_offerings(
-                client, datastore_id, datastore_name, is_cancelled, progress_callback
-            )
-            items.extend(offering_items)
-            progress_callback(
-                ProgressEvent(
-                    "endpoints",
-                    f"Endpoints : récupération pour {datastore_name}",
-                    extra={"datastore_name": datastore_name},
+        def run_stage(stage, func, message):
+            """One failing stage (e.g. HTTP 500 on /endpoints) must not discard
+            what the other stages of the same datastore already returned."""
+            progress_callback(ProgressEvent(stage, message, extra={"datastore_name": datastore_name}))
+            try:
+                return func()
+            except Exception as exc:  # noqa: BLE001 - isolate per-stage failures on purpose
+                errors.append(
+                    DatastoreLoadError(datastore_id=datastore_id, datastore_name=datastore_name, stage=stage, message=str(exc))
                 )
-            )
-            endpoint_items = _datastore_endpoints(client, datastore_id, datastore_name, is_cancelled)
-            items.extend(endpoint_items)
-            progress_callback(
-                ProgressEvent(
-                    "permissions",
-                    f"Permissions producteur : {len(offering_names)} offering(s) référencé(s)",
-                    extra={"datastore_name": datastore_name},
+                progress_callback(
+                    ProgressEvent(
+                        "datastore_error",
+                        f"Échec ({stage}) pour le datastore {datastore_name} : {exc}",
+                        extra={"datastore_name": datastore_name},
+                    )
                 )
+                return None
+
+        offerings_result = run_stage(
+            "offerings",
+            lambda: _datastore_offerings(client, datastore_id, datastore_name, is_cancelled, progress_callback),
+            f"Offerings : récupération pour {datastore_name}",
+        )
+        if offerings_result is None:
+            continue  # datastore unusable: the other stages would only add noise
+        offering_items, offering_names = offerings_result
+        items.extend(offering_items)
+        endpoint_items = run_stage(
+            "endpoints",
+            lambda: _datastore_endpoints(client, datastore_id, datastore_name, is_cancelled),
+            f"Endpoints : récupération pour {datastore_name}",
+        ) or []
+        items.extend(endpoint_items)
+        permission_items = run_stage(
+            "permissions",
+            lambda: _datastore_permissions(client, datastore_id, datastore_name, offering_names, is_cancelled),
+            f"Permissions producteur : {len(offering_names)} offering(s) référencé(s)",
+        ) or []
+        items.extend(permission_items)
+        progress_callback(
+            ProgressEvent(
+                "datastore_done",
+                f"Datastore {datastore_name} : {len(offering_items)} offering(s), "
+                f"{len(endpoint_items)} endpoint(s), {len(permission_items)} permission(s)",
+                extra={
+                    "datastore_name": datastore_name,
+                    "offerings_count": len(offering_items),
+                    "endpoints_count": len(endpoint_items),
+                    "permissions_count": len(permission_items),
+                },
             )
-            permission_items = _datastore_permissions(
-                client, datastore_id, datastore_name, offering_names, is_cancelled
-            )
-            items.extend(permission_items)
-            progress_callback(
-                ProgressEvent(
-                    "datastore_done",
-                    f"Datastore {datastore_name} : {len(offering_items)} offering(s), "
-                    f"{len(endpoint_items)} endpoint(s), {len(permission_items)} permission(s)",
-                    extra={
-                        "datastore_name": datastore_name,
-                        "offerings_count": len(offering_items),
-                        "endpoints_count": len(endpoint_items),
-                        "permissions_count": len(permission_items),
-                    },
-                )
-            )
-        except Exception as exc:  # noqa: BLE001 - isolate per-datastore failures on purpose
-            errors.append(
-                DatastoreLoadError(
-                    datastore_id=datastore_id,
-                    datastore_name=datastore_name,
-                    stage="datastore_load",
-                    message=str(exc),
-                )
-            )
-            progress_callback(
-                ProgressEvent(
-                    "datastore_error",
-                    f"Échec du chargement du datastore {datastore_name} : {exc}",
-                    extra={"datastore_name": datastore_name},
-                )
-            )
-            continue
+        )
 
     progress_callback(ProgressEvent("build", "Construction du catalogue…"))
     return Catalog(items=items, errors=errors, loaded_at=now_iso(), from_cache=False)

@@ -267,10 +267,11 @@ class MainDialog(QDialog):
             f"{' — chargé depuis le cache' if catalog.from_cache else ''}."
         )
         if catalog.errors:
-            message += f" {len(catalog.errors)} datastore(s) en erreur."
-            details = "\n".join(f"- {e.datastore_name} : {e.message}" for e in catalog.errors)
-            QMessageBox.warning(self, "Chargement partiel", f"Le chargement a rencontré des erreurs :\n{details}")
+            message += f" {len(catalog.errors)} erreur(s) de chargement partiel."
         self.status_label.setText(message)
+        if catalog.errors:
+            details = "\n".join(f"- {e.datastore_name} ({e.stage}) : {e.message}" for e in catalog.errors)
+            QMessageBox.warning(self, "Chargement partiel", f"Le chargement a rencontré des erreurs :\n{details}")
 
     def _producer_entries(self) -> list:
         entries = list(self.catalog.by_scope("producer")) if self.catalog else []

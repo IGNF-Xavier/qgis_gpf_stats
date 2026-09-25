@@ -114,3 +114,21 @@ def test_cancellation_stops_before_second_datastore(fake_transport, api_client):
 
     catalog = build_catalog(api_client, is_cancelled=is_cancelled)
     assert isinstance(catalog.items, list)
+
+
+def test_failing_stage_keeps_other_stages_of_the_same_datastore(fake_transport, api_client):
+    from geoplateforme_usage_stats.core.models import OFFERING
+    from geoplateforme_usage_stats.net.api_client import TransportResponse
+
+    _wire_two_datastores(fake_transport)
+    fake_transport.when("/datastores/ds-1/endpoints", lambda params: TransportResponse(status=500, headers={}, body=b""))
+    fake_transport.when("/datastores/ds-2/offerings", lambda params: {"items": []})
+    fake_transport.when("/datastores/ds-2/endpoints", lambda params: {"items": []})
+    fake_transport.when("/datastores/ds-2/permissions", lambda params: {"items": []})
+
+    catalog = build_catalog(api_client)
+    kinds = [i.kind for i in catalog.items if i.datastore_id == "ds-1"]
+    assert kinds.count(OFFERING) == 2
+    assert PRODUCER_PERMISSION in kinds
+    assert ENDPOINT not in kinds
+    assert [(e.datastore_id, e.stage) for e in catalog.errors] == [("ds-1", "endpoints")]
