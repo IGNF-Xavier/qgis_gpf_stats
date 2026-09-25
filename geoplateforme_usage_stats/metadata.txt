@@ -1,0 +1,18 @@
+[general]
+name=Statistiques analytiques Géoplateforme
+description=Statistiques d'usage de la Géoplateforme (Entrepôt + Stats) : chargement asynchrone avec progression, groupes d'offres composables, dashboard interne, exports CSV et XLSX analytiques.
+version=7.2.0
+qgisMinimumVersion=3.40
+qgisMaximumVersion=3.99
+author=Xavier Thauvin
+email=x.thauvin@gmail.com
+about=Réécriture structurée en modules (core/net/workers/exporters/ui) de la version 6.1.0 : chargement du catalogue en tâche de fond QgsTask avec barre de progression et annulation, cache local horodaté, éditeur de groupes d'offres ergonomique (recherche, filtres, compteur), séparation stricte consommateur/producteur, contrôle de couverture temporelle explicite (activité observée vs période demandée), agrégation jour/semaine/mois tolérante aux périodes API non alignées, dashboard interne à niveau d'analyse unique (jamais de double comptage entre offerings/endpoints/permissions/groupes), glossaire intégré, exports CSV nommés et export XLSX analytique à 10 feuilles avec graphiques intégrés. Conserve les noms métier et les UUID partout.
+category=Web
+tags=geoplateforme,ign,statistiques,stats,api,entrepot,dashboard
+homepage=https://github.com/IGNF-Xavier/qgis_gpf_stats
+tracker=https://github.com/IGNF-Xavier/qgis_gpf_stats/issues
+repository=https://github.com/IGNF-Xavier/qgis_gpf_stats
+hasProcessingProvider=no
+experimental=True
+deprecated=False
+changelog=7.2.0 : diagnostic réel d'authentification (401/403) avec bouton direct vers « Configurer OAuth2… », cache jamais chargé automatiquement (pour ne pas masquer un jeton mort), onglet Producteur réorganisé en arborescence (Groupes/Endpoints/Offerings/Permissions producteur, groupée par datastore, un groupe affiche ses offres membres), dashboard et export XLSX qui ne proposent/n'affichent que les niveaux réellement interrogés. 7.1.1 : la fenêtre principale et les fenêtres de progression sont maintenant non modales (le reste de QGIS - canvas, autres panneaux, autres extensions - reste utilisable pendant un chargement ou une interrogation) ; l'éditeur de groupes et la configuration OAuth2 restent modaux mais seulement vis-à-vis de la fenêtre du plugin, jamais de QGIS entier ; garde-fou contre le lancement de deux opérations réseau en parallèle. 7.1.0 : glossaire intégré (plugin + feuille XLSX) définissant offering/datastore/endpoint/permission/groupe, affichage de l'usage réel des endpoints (X/Y offres raccordées, avec option pour masquer les endpoints vides) pour expliquer leur nombre apparent, dashboard corrigé (filtres grisés et remis à zéro quand ils ne s'appliquent pas au niveau choisi, légende de filtres actifs, description sous chaque graphique), dashboard XLSX complété (permissions producteur/consommateur, légendes). 7.0.1 : correction d'un bug réel constaté en production (labels d'endpoint vides). Voir CHANGELOG.md dans les sources. Migration automatique des groupes 6.1.0 au premier lancement.
