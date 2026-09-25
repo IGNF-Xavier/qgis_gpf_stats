@@ -28,9 +28,19 @@ Prérequis : QGIS 3.40 ou supérieur.
 
 Aucune dépendance à installer : `openpyxl` est embarqué (utilisé uniquement s'il est absent de l'environnement Python de QGIS). Détails dans [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
+## Authentification (recommandé)
+
+Le plus simple est de **passer par l'extension officielle « Géoplateforme » pour QGIS** :
+
+1. Installez l'extension *Géoplateforme* depuis le gestionnaire d'extensions de QGIS.
+2. Configurez votre authentification dans cette extension (elle crée une configuration OAuth2 dans le gestionnaire d'authentification de QGIS, nommée par exemple `geoplateforme_cfg`).
+3. Dans *Statistiques analytiques Géoplateforme*, ouvrez **Configurer OAuth2…** et sélectionnez cette même configuration.
+
+Le jeton est alors géré et renouvelé par QGIS, sans rien saisir dans ce plugin. Si un jeton expire, l'erreur 401/403 propose un accès direct à la configuration.
+
 ## Prise en main
 
-1. **Configurer OAuth2…** : choisissez une configuration d'authentification QGIS valide pour `data.geopf.fr`.
+1. **Configurer OAuth2…** : choisissez la configuration d'authentification créée par l'extension *Géoplateforme* (voir ci-dessus).
 2. **Actualiser depuis l'API** pour charger le catalogue (ou **Utiliser le cache** hors connexion).
 3. Sélectionnez des objets dans les onglets *Consommateur* / *Producteur*, éventuellement via **Composer les groupes…**.
 4. Choisissez la période puis **Interroger la sélection**.

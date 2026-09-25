@@ -1,5 +1,9 @@
 # Procédure d'installation
 
+## Préalable : authentification
+
+Installez l'extension *Géoplateforme* pour QGIS et configurez-y votre authentification : elle crée la configuration OAuth2 que ce plugin réutilise (**Configurer OAuth2…**). C'est la méthode la plus simple, le jeton étant géré par QGIS.
+
 ## Depuis le ZIP (utilisateur final)
 
 1. QGIS → **Extensions → Installer/Gérer les extensions → Installer depuis un ZIP**.

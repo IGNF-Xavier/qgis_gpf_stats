@@ -14,6 +14,8 @@ La fenêtre principale n'est pas modale : vous pouvez continuer à utiliser QGIS
 
 **Extensions → Statistiques analytiques Géoplateforme → Configurer OAuth2…**
 
+**Méthode recommandée** : installez d'abord l'extension *Géoplateforme* pour QGIS, configurez votre authentification dans cette extension (elle crée une configuration OAuth2 dans le gestionnaire d'authentification de QGIS, par exemple `geoplateforme_cfg`), puis sélectionnez cette configuration ici. Le jeton est ainsi géré et renouvelé par QGIS, sans rien saisir dans ce plugin.
+
 Sélectionnez la configuration d'authentification OAuth2 QGIS à utiliser pour interroger `data.geopf.fr/api`. Le plugin ne stocke jamais de secret lui-même : il délègue entièrement à la configuration QGIS existante.
 
 **Si le jeton a expiré ou ne fonctionne plus** : un chargement ou une interrogation qui échoue avec une erreur d'authentification (401/403) affiche désormais un bouton **« Configurer OAuth2… »** directement dans le message d'erreur. Choisir la même configuration ne la réautorise pas forcément à elle seule : utilisez l'icône crayon du sélecteur pour éditer/réautoriser la configuration, ou créez-en une nouvelle depuis les paramètres d'authentification de QGIS. Le cache local n'est jamais chargé automatiquement à l'ouverture, précisément pour ne pas masquer un jeton mort derrière un catalogue qui a l'air normal.
