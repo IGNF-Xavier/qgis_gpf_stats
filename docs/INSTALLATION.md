@@ -7,7 +7,7 @@ Installez l'extension *Géoplateforme* pour QGIS et configurez-y votre authentif
 ## Depuis le ZIP (utilisateur final)
 
 1. QGIS → **Extensions → Installer/Gérer les extensions → Installer depuis un ZIP**.
-2. Choisir `geoplateforme_usage_stats_plugin_7.2.0.zip`.
+2. Choisir `geoplateforme_usage_stats_plugin_7.2.1.zip`.
 3. Cliquer **Installer le plugin**. QGIS décompresse l'archive dans le dossier `python/plugins/geoplateforme_usage_stats` du profil actif.
 4. Activer la case de l'extension dans l'onglet **Extensions installées** si elle n'est pas déjà cochée.
 5. Le menu **Extensions → Statistiques analytiques Géoplateforme** apparaît avec deux entrées : **Ouvrir…** et **Configurer OAuth2…**.
@@ -15,7 +15,7 @@ Installez l'extension *Géoplateforme* pour QGIS et configurez-y votre authentif
 ## Installation manuelle (sans passer par le gestionnaire)
 
 1. Fermer QGIS.
-2. Décompresser `geoplateforme_usage_stats_plugin_7.2.0.zip` de façon à obtenir un dossier `geoplateforme_usage_stats/` (contenant directement `__init__.py`, `metadata.txt`, etc. — pas de dossier intermédiaire).
+2. Décompresser `geoplateforme_usage_stats_plugin_7.2.1.zip` de façon à obtenir un dossier `geoplateforme_usage_stats/` (contenant directement `__init__.py`, `metadata.txt`, etc. — pas de dossier intermédiaire).
 3. Copier ce dossier dans `python/plugins/` du profil QGIS actif :
    - Windows : `%APPDATA%\QGIS\QGIS3\profiles\<profil>\python\plugins\`
    - Linux/macOS : `~/.local/share/QGIS/QGIS3/profiles/<profil>/python/plugins/`

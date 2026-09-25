@@ -21,4 +21,4 @@ Aucune autre dépendance tierce. Tout le reste (réseau, dates, Qt) utilise excl
 | `pytest` | Exécution des 76 tests unitaires de `core/` et `net/` (aucune dépendance à QGIS) |
 | Python ≥ 3.9 avec `openpyxl` système (optionnel) | Utilisé pour lancer les tests et le générateur `tools/generate_sample.py` en dehors de QGIS |
 
-Ces outils ne font pas partie du ZIP installable (`geoplateforme_usage_stats_plugin_7.2.0.zip`) ; ils sont fournis dans l'archive « sources » (`le dépôt Git`) pour permettre de rejouer les tests.
+Ces outils ne font pas partie du ZIP installable (`geoplateforme_usage_stats_plugin_7.2.1.zip`) ; ils sont fournis dans l'archive « sources » (`le dépôt Git`) pour permettre de rejouer les tests.

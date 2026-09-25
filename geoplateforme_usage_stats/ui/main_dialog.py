@@ -73,7 +73,7 @@ class MainDialog(QDialog):
         self._active_task = None
         self._active_dialog = None
 
-        self.setWindowTitle("Statistiques analytiques Géoplateforme 7.2.0")
+        self.setWindowTitle("Statistiques analytiques Géoplateforme 7.2.1")
         self.resize(1500, 980)
         root = QVBoxLayout(self)
 

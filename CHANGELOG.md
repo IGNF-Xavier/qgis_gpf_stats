@@ -2,6 +2,17 @@
 
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [7.2.1] - 2026-09-25
+
+### Corrigé
+- Onglet Producteur : sélection multiple avec Maj et Ctrl.
+- Onglet Producteur : sélectionner une catégorie ou un datastore ajoute tout son contenu visible.
+- Chargement du catalogue : chaque étape d'un datastore (offerings, endpoints, permissions) est isolée ; une erreur serveur sur l'une d'elles ne fait plus perdre les autres.
+- Le statut est mis à jour avant l'alerte de chargement partiel, qui indique désormais l'étape en erreur.
+
+### Documentation
+- Authentification : la méthode recommandée est d'installer l'extension *Géoplateforme* et de réutiliser sa configuration OAuth2.
+
 ## [7.2.0] - 2026-09-22
 
 ### Ajouté
@@ -59,4 +70,5 @@ Réécriture structurée de la version 6.1.0.
 
 Version initiale reprise, voir [docs/historique_6.1.0.md](docs/historique_6.1.0.md).
 
+[7.2.1]: https://github.com/IGNF-Xavier/qgis_gpf_stats/releases/tag/v7.2.1
 [7.2.0]: https://github.com/IGNF-Xavier/qgis_gpf_stats/releases/tag/v7.2.0

@@ -1,9 +1,9 @@
-# Statistiques analytiques Géoplateforme — 7.2.0 — Guide utilisateur
+# Statistiques analytiques Géoplateforme — 7.2.1 — Guide utilisateur
 
 ## 1. Installation
 
 1. Dans QGIS : **Extensions → Installer/Gérer les extensions → Installer depuis un ZIP**.
-2. Sélectionnez `geoplateforme_usage_stats_plugin_7.2.0.zip`.
+2. Sélectionnez `geoplateforme_usage_stats_plugin_7.2.1.zip`.
 3. Activez l'extension. Un menu **Statistiques analytiques Géoplateforme** apparaît dans **Extensions**.
 
 Prérequis : QGIS 3.40 ou supérieur (testé sur 3.40.4). Aucune dépendance à installer séparément (voir `DEPENDANCES.md`).

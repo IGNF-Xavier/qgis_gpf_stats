@@ -1,7 +1,7 @@
 [general]
 name=Statistiques analytiques Géoplateforme
 description=Statistiques d'usage de la Géoplateforme (Entrepôt + Stats) : chargement asynchrone avec progression, groupes d'offres composables, dashboard interne, exports CSV et XLSX analytiques.
-version=7.2.0
+version=7.2.1
 qgisMinimumVersion=3.40
 qgisMaximumVersion=3.99
 author=Xavier Thauvin
