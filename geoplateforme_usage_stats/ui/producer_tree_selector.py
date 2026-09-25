@@ -80,6 +80,7 @@ class ProducerTreeSelector(QWidget):
         available_box.addWidget(self.search)
         self.tree = QTreeWidget()
         self.tree.setHeaderHidden(True)
+        self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)  # Shift / Ctrl
         self.tree.itemDoubleClicked.connect(self._on_tree_double_clicked)
         available_box.addWidget(self.tree, 1)
         body.addLayout(available_box, 2)
@@ -91,7 +92,7 @@ class ProducerTreeSelector(QWidget):
         self.btn_remove_selected = QPushButton("<<<")
         self.btn_remove_all = QPushButton("<<")
         for button, slot, tip in (
-            (self.btn_add_selected, self._add_selected, "Ajouter les éléments sélectionnés dans l'arbre"),
+            (self.btn_add_selected, self._add_selected, "Ajouter la sélection (Maj/Ctrl pour plusieurs ; une catégorie ou un datastore ajoute tout son contenu visible)"),
             (self.btn_remove_selected, self._remove_selected, "Retirer les éléments sélectionnés"),
             (self.btn_add_all, self._add_all, "Tout ajouter"),
             (self.btn_remove_all, self._remove_all, "Tout retirer"),
@@ -138,7 +139,7 @@ class ProducerTreeSelector(QWidget):
                 continue
             category_node = QTreeWidgetItem([f"{CATEGORY_LABELS[category]} ({len(items)})"])
             category_node.setFont(0, self._bold_font())
-            category_node.setFlags(Qt.ItemIsEnabled)
+            category_node.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
             self.tree.addTopLevelItem(category_node)
 
             if category == "user_group":
@@ -151,7 +152,7 @@ class ProducerTreeSelector(QWidget):
                 for datastore_name in sorted(by_datastore):
                     datastore_items = by_datastore[datastore_name]
                     datastore_node = QTreeWidgetItem([f"{datastore_name} ({len(datastore_items)})"])
-                    datastore_node.setFlags(Qt.ItemIsEnabled)
+                    datastore_node.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
                     category_node.addChild(datastore_node)
                     for entry in sorted(datastore_items, key=lambda e: e.label.casefold()):
                         self._add_leaf(datastore_node, entry)
@@ -246,14 +247,30 @@ class ProducerTreeSelector(QWidget):
         if entry is not None:
             self._set_selected([entry], False)
 
+    def _descendant_leaves(self, item: QTreeWidgetItem) -> list:
+        """The item itself if it is a selectable object, otherwise every visible
+        object below it (a category or datastore header stands for its content)."""
+        if item.data(0, Qt.UserRole) is not None:
+            return [item]
+        leaves = []
+        for i in range(item.childCount()):
+            child = item.child(i)
+            if child.isHidden() or child.flags() == Qt.NoItemFlags:
+                continue
+            leaves.extend(self._descendant_leaves(child))
+        return leaves
+
     def _tree_leaf_entries(self, only_selected_nodes: bool) -> list:
-        source = self.tree.selectedItems() if only_selected_nodes else list(self._leaf_items.values())
-        entries = []
-        for item in source:
-            entry = item.data(0, Qt.UserRole)
-            if entry is not None and not item.isHidden():
-                entries.append(entry)
-        return entries
+        if only_selected_nodes:
+            leaf_items = [leaf for node in self.tree.selectedItems() for leaf in self._descendant_leaves(node)]
+        else:
+            leaf_items = list(self._leaf_items.values())
+        entries = {}
+        for leaf in leaf_items:
+            entry = leaf.data(0, Qt.UserRole)
+            if entry is not None and not leaf.isHidden():
+                entries[entry.item_id] = entry
+        return list(entries.values())
 
     def _add_selected(self) -> None:
         self._set_selected(self._tree_leaf_entries(only_selected_nodes=True), True)
