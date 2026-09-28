@@ -2,6 +2,12 @@
 
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [7.2.2] - 2026-09-28
+
+### Corrigé
+- **Export XLSX : fichier signalé comme endommagé par Excel.** Les graphiques du tableau de bord déclaraient leur axe de catégories (dates, noms d'offerings/endpoints/datastores...) comme une référence numérique alors que les cellules concernées contiennent du texte ; Excel rejette cette incohérence de type et propose de « récupérer le contenu ». Tous les graphiques utilisent désormais une référence de type texte, cohérente avec les cellules réellement écrites.
+- **Plantage de QGIS pendant un export XLSX**, avec un plantage natif (« access violation ») à l'intérieur d'`openpyxl`/`lxml`. Force désormais le moteur XML interne d'openpyxl (variable `OPENPYXL_LXML=False`), pour éviter tout conflit avec une éventuelle autre version de lxml installée sur le poste.
+
 ## [7.2.1] - 2026-09-25
 
 ### Corrigé
@@ -70,5 +76,6 @@ Réécriture structurée de la version 6.1.0.
 
 Version initiale reprise, voir [docs/historique_6.1.0.md](docs/historique_6.1.0.md).
 
+[7.2.2]: https://github.com/IGNF-Xavier/qgis_gpf_stats/releases/tag/v7.2.2
 [7.2.1]: https://github.com/IGNF-Xavier/qgis_gpf_stats/releases/tag/v7.2.1
 [7.2.0]: https://github.com/IGNF-Xavier/qgis_gpf_stats/releases/tag/v7.2.0

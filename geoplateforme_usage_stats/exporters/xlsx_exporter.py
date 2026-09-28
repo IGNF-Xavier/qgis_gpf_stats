@@ -5,17 +5,29 @@ plugin never installed must still make sense.
 """
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
+
+# Force openpyxl's pure-Python XML backend instead of lxml. QGIS bundles its
+# own lxml build; a second, ABI-incompatible lxml picked up from a user-site
+# install (same failure mode as a stray user-site numpy/opencv shadowing
+# QGIS's bundled numpy) crashes the whole process with a native access
+# violation deep inside lxml's Element() - not a Python exception we could
+# catch. Must be set before openpyxl.xml is first imported anywhere in the
+# process; openpyxl reads this documented variable itself.
+os.environ.setdefault("OPENPYXL_LXML", "False")
 
 try:
     from openpyxl import Workbook
     from openpyxl.chart import BarChart, LineChart, PieChart, Reference
+    from openpyxl.chart.data_source import AxDataSource, StrRef
     from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
     from openpyxl.worksheet.table import Table, TableStyleInfo
 except ImportError:  # pragma: no cover - exercised only inside QGIS without system openpyxl
     from ..vendor.openpyxl import Workbook
     from ..vendor.openpyxl.chart import BarChart, LineChart, PieChart, Reference
+    from ..vendor.openpyxl.chart.data_source import AxDataSource, StrRef
     from ..vendor.openpyxl.styles import Alignment, Font, PatternFill
     from ..vendor.openpyxl.utils import get_column_letter
     from ..vendor.openpyxl.worksheet.table import Table, TableStyleInfo
@@ -301,7 +313,13 @@ def _dashboard_sheet(wb, context: ExportContext):
 
     def _add_bar_or_pie(chart, data_col, start_row, count, anchor, width=18, height=10):
         chart.add_data(Reference(ws, min_col=data_col, min_row=start_row + 2, max_row=start_row + 1 + count), titles_from_data=False)
-        chart.set_categories(Reference(ws, min_col=1, min_row=start_row + 2, max_row=start_row + 1 + count))
+        category_ref = Reference(ws, min_col=1, min_row=start_row + 2, max_row=start_row + 1 + count)
+        # Category cells (dates, offering/endpoint/datastore labels...) are written
+        # as text, never numbers - chart.set_categories() always emits <numRef>
+        # regardless of the actual cell type, which Excel's strict schema check
+        # rejects (type says "numbers", cells say "text") and offers to repair.
+        for series in chart.series:
+            series.cat = AxDataSource(strRef=StrRef(f=category_ref))
         chart.width, chart.height = width, height
         ws.add_chart(chart, anchor)
 

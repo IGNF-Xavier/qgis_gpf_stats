@@ -80,6 +80,28 @@ def test_dashboard_omits_levels_not_in_the_selection(tmp_path, synthetic_dataset
     assert "Top 15 groupes" not in text_blob
 
 
+def test_chart_categories_use_string_reference_not_numeric(tmp_path, synthetic_dataset):
+    # Regression: category cells (dates, labels) are written as text, but
+    # Chart.set_categories() always emits <numRef> regardless of actual cell
+    # type - Excel's strict validator rejects that mismatch and offers to
+    # "repair" the file. Every chart must declare <strRef> for its categories.
+    import re
+    import zipfile
+
+    results, groups, period = synthetic_dataset
+    context = build_export_context(results, groups, period, errors=[])
+    path = tmp_path / "report.xlsx"
+    xlsx_exporter.export_workbook(str(path), context)
+
+    with zipfile.ZipFile(str(path)) as archive:
+        chart_names = [n for n in archive.namelist() if n.startswith("xl/charts/chart") and n.endswith(".xml")]
+        assert chart_names, "expected at least one chart in the synthetic export"
+        for name in chart_names:
+            data = archive.read(name).decode("utf-8")
+            for cat_block in re.findall(r"<cat>(.*?)</cat>", data):
+                assert "strRef" in cat_block and "numRef" not in cat_block, f"{name}: {cat_block}"
+
+
 def test_human_bytes_units():
     assert xlsx_exporter.human_bytes(500) == "500 o"
     assert xlsx_exporter.human_bytes(2048).endswith("Ko")
