@@ -419,5 +419,11 @@ def export_workbook(path: str, context: ExportContext) -> None:
     _glossary_sheet(wb)
 
     wb.properties.title = "Statistiques analytiques Géoplateforme"
-    wb.properties.created = datetime.now(timezone.utc)
+    # Naive datetime (already UTC, tzinfo stripped): openpyxl 3.1.2 (bundled by
+    # QGIS 3.40.4) mis-serialises a timezone-aware one as "...+00:00Z" - both a
+    # UTC offset AND a "Z" suffix, which is not a valid W3CDTF/ISO-8601
+    # timestamp. Excel's core-properties parser rejects that single malformed
+    # date and reports the *entire* file as needing repair, even though every
+    # sheet, table and chart is otherwise valid.
+    wb.properties.created = datetime.now(timezone.utc).replace(tzinfo=None)
     wb.save(path)

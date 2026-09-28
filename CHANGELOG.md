@@ -2,6 +2,11 @@
 
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [7.2.3] - 2026-09-28
+
+### Corrigé
+- **Export XLSX toujours signalé comme endommagé par Excel après la 7.2.2.** Cause réelle, distincte de celle corrigée en 7.2.2 : la date de création du classeur (`docProps/core.xml`) était mal formée (`...+00:00Z`, un décalage UTC et un suffixe « Z » combinés) à cause d'un bug de sérialisation d'openpyxl 3.1.2 - la version que QGIS 3.40 embarque - avec les dates conscientes du fuseau horaire. Une seule date invalide dans les métadonnées du document suffit à faire échouer la validation d'Excel pour tout le fichier, alors que ses feuilles, tableaux et graphiques sont par ailleurs valides. Reproduit et vérifié avec la version d'openpyxl exacte embarquée par QGIS.
+
 ## [7.2.2] - 2026-09-28
 
 ### Corrigé
@@ -76,6 +81,7 @@ Réécriture structurée de la version 6.1.0.
 
 Version initiale reprise, voir [docs/historique_6.1.0.md](docs/historique_6.1.0.md).
 
+[7.2.3]: https://github.com/IGNF-Xavier/qgis_gpf_stats/releases/tag/v7.2.3
 [7.2.2]: https://github.com/IGNF-Xavier/qgis_gpf_stats/releases/tag/v7.2.2
 [7.2.1]: https://github.com/IGNF-Xavier/qgis_gpf_stats/releases/tag/v7.2.1
 [7.2.0]: https://github.com/IGNF-Xavier/qgis_gpf_stats/releases/tag/v7.2.0

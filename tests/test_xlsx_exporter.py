@@ -102,6 +102,27 @@ def test_chart_categories_use_string_reference_not_numeric(tmp_path, synthetic_d
                 assert "strRef" in cat_block and "numRef" not in cat_block, f"{name}: {cat_block}"
 
 
+def test_core_properties_created_date_is_valid_w3cdtf(tmp_path, synthetic_dataset):
+    # Regression: a timezone-aware datetime passed to wb.properties.created is
+    # mis-serialised by openpyxl 3.1.2 (bundled by QGIS 3.40.4) as
+    # "...+00:00Z" - a UTC offset AND a "Z" suffix together, which is not a
+    # valid W3CDTF timestamp. Excel's document-properties parser rejects that
+    # single malformed date and reports the whole file as needing repair.
+    import re
+    import zipfile
+
+    results, groups, period = synthetic_dataset
+    context = build_export_context(results, groups, period, errors=[])
+    path = tmp_path / "report.xlsx"
+    xlsx_exporter.export_workbook(str(path), context)
+
+    with zipfile.ZipFile(str(path)) as archive:
+        core = archive.read("docProps/core.xml").decode("utf-8")
+    created = re.search(r"<dcterms:created[^>]*>([^<]+)</dcterms:created>", core).group(1)
+    assert not (created.endswith("+00:00Z") or re.search(r"[+-]\d{2}:\d{2}Z$", created)), created
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", created), created
+
+
 def test_human_bytes_units():
     assert xlsx_exporter.human_bytes(500) == "500 o"
     assert xlsx_exporter.human_bytes(2048).endswith("Ko")
