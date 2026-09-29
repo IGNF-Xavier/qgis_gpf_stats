@@ -1,4 +1,4 @@
-# Architecture — 7.2.0
+# Architecture — 7.3.0
 
 ## Objectif de la réécriture
 
@@ -20,13 +20,18 @@ geoplateforme_usage_stats/
 │
 ├── net/             logique réseau, Transport injecté (seul qgis_transport.py importe qgis)
 │   ├── api_client.py        pagination, retry/backoff, mapping des codes HTTP
-│   ├── catalog_service.py   construit le catalogue (routes Entrepôt), isole les erreurs par datastore
+│   ├── catalog_service.py   construit le catalogue (routes Entrepôt), isole les erreurs par datastore ;
+│   │                        expose aussi `list_datastore_refs()` (liste rapide, `GET /users/me`) et un
+│   │                        filtre optionnel de datastores pour `build_catalog()`
+│   ├── datastore_info_service.py  détail par datastore (stockage, endpoints) pour l'onglet Datastores,
+│   │                               isole les erreurs par datastore (route lente, 10-30s)
 │   ├── stats_service.py     interroge les routes Stats, isole les erreurs par objet
 │   ├── qgis_transport.py    QgsNetworkAccessManager + gestionnaire d'authentification QGIS
 │   └── progress.py          vocabulaire d'événements de progression partagé
 │
 ├── workers/
-│   └── tasks.py       QgsTask (CatalogLoadTask, StatsQueryTask) : tout le réseau tourne hors thread UI
+│   └── tasks.py       QgsTask (CatalogLoadTask, StatsQueryTask, DatastoreListTask, DatastoreInfoTask) :
+│                       tout le réseau tourne hors thread UI
 │
 ├── exporters/
 │   ├── csv_exporter.py      6 exports CSV nommés
@@ -38,6 +43,8 @@ geoplateforme_usage_stats/
 ├── ui/               Qt/QGIS uniquement — orchestration, aucune logique métier propre
 │   ├── main_dialog.py, group_editor.py, dual_selector.py (onglet Consommateur),
 │   │   producer_tree_selector.py (onglet Producteur : arborescence catégorie → datastore),
+│   │   datastore_info_tab.py (onglet Datastores), datastore_selection_dialog.py
+│   │   (choix des datastores avant « Actualiser depuis l'API »),
 │   │   period_panel.py, progress_dialog.py, dashboard_widget.py, glossary_dialog.py,
 │   │   settings_dialog.py, settings_store.py
 │
@@ -47,7 +54,7 @@ geoplateforme_usage_stats/
 
 ## Pourquoi cette séparation
 
-- **`core/` ne dépend jamais de Qt.** Toute règle métier (couverture, agrégation, KPI, groupes, période, cache) est donc testable avec `pytest` seul, sans QGIS installé — c'est ce qui a permis d'écrire les 76 tests unitaires du dépôt sans environnement QGIS.
+- **`core/` ne dépend jamais de Qt.** Toute règle métier (couverture, agrégation, KPI, groupes, période, cache) est donc testable avec `pytest` seul, sans QGIS installé — c'est ce qui a permis d'écrire les 86 tests unitaires du dépôt sans environnement QGIS.
 - **`net/` isole le seul point de contact avec le réseau** derrière un protocole `Transport` (une méthode `request(path, params) -> TransportResponse`). Les tests utilisent un `FakeTransport` ; l'exécution réelle utilise `QgsTransport` (QgsNetworkAccessManager + gestionnaire d'authentification QGIS, proxys et paramètres réseau QGIS respectés).
 - **`workers/` est la seule couche qui touche aux threads.** `QgsTask` exécute `core`/`net` en tâche de fond et ne communique avec l'UI que par signaux Qt (`stepProgress`, `loaded`/`failed`, `finishedWithResults`) — jamais d'appel direct à un widget depuis le thread de travail.
 - **`ui/` ne fait qu'assembler.** `main_dialog.py` ne recalcule rien lui-même : il appelle `core.group_service`, `core.export_context`, `net.catalog_service`/`stats_service` via les workers, et reflète le résultat dans les widgets.
@@ -57,6 +64,12 @@ geoplateforme_usage_stats/
 `MainDialog._load_from_api` → crée un `ApiClient(QgsTransport(authcfg))` → `CatalogLoadTask` → `net.catalog_service.build_catalog()` (thread de travail) → progression émise à chaque étape (connexion, permissions consommateur, par datastore : offerings, détail des offerings, endpoints, permissions producteur) → `ProgressDialog` (UI) affiche l'étape courante, le datastore, les compteurs cumulés et le temps écoulé → `Catalog` renvoyé par le signal `loaded`, mis en cache (`core.cache_service`), puis reflété dans les deux sélecteurs.
 
 Un échec sur un datastore est capturé (`DatastoreLoadError`), n'interrompt pas le chargement des autres, et alimente la feuille `Journal_erreurs` des exports.
+
+Avant de lancer `CatalogLoadTask`, `_load_from_api` lance d'abord un `DatastoreListTask` (un seul appel `GET /users/me`, rapide) et affiche `DatastoreSelectionDialog` avec le résultat ; l'ensemble des identifiants cochés (persisté via `QgsSettings`, `settings_store.get/set_selected_datastore_ids`) est passé comme `datastore_filter` à `CatalogLoadTask`/`build_catalog()`, qui ignore alors les autres datastores. Les permissions consommateur ne sont pas concernées par ce filtre.
+
+## Onglet Datastores
+
+Indépendant du catalogue de statistiques : `DatastoreInfoTab` déclenche lui-même `DatastoreListTask` (bouton « Actualiser la liste des datastores ») puis, pour les seuls datastores cochés, `DatastoreInfoTask` → `net.datastore_info_service.fetch_many_datastore_info()` (`GET /datastores/{id}`, 10-30s par appel, erreurs isolées par datastore comme pour le catalogue). Les deux tâches partagent le même garde-fou « une seule opération réseau à la fois » que le reste de la fenêtre (`MainDialog._start_task`/`_finish_task`).
 
 ## Flux de requête de statistiques
 

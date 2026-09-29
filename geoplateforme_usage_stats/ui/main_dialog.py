@@ -32,9 +32,11 @@ from ..core.period_service import PeriodValidationError
 from ..exporters import csv_exporter, xlsx_exporter
 from ..net.api_client import ApiClient
 from ..net.qgis_transport import QgsTransport
-from ..workers.tasks import CatalogLoadTask, StatsQueryTask
+from ..workers.tasks import CatalogLoadTask, DatastoreInfoTask, DatastoreListTask, StatsQueryTask
 from . import settings_store
 from .dashboard_widget import DashboardWidget
+from .datastore_info_tab import DatastoreInfoTab
+from .datastore_selection_dialog import DatastoreSelectionDialog
 from .dual_selector import DualSelector
 from .glossary_dialog import GlossaryDialog
 from .group_editor import GroupEditor
@@ -73,7 +75,7 @@ class MainDialog(QDialog):
         self._active_task = None
         self._active_dialog = None
 
-        self.setWindowTitle("Statistiques analytiques Géoplateforme 7.2.3")
+        self.setWindowTitle("Statistiques analytiques Géoplateforme 7.3.0")
         self.resize(1500, 980)
         root = QVBoxLayout(self)
 
@@ -89,7 +91,6 @@ class MainDialog(QDialog):
             (self.btn_use_cache, self._load_from_cache),
             (self.btn_clear_cache, self._clear_cache),
             (self.btn_groups, self._open_group_editor),
-            (self.btn_run, self._run_query),
         ):
             button.clicked.connect(slot)
             top.addWidget(button)
@@ -112,13 +113,23 @@ class MainDialog(QDialog):
         self.consumer_selector = DualSelector("Permissions consommateur disponibles", "Permissions consommateur sélectionnées")
         self.producer_selector = ProducerTreeSelector("Objets producteur et groupes disponibles", "Objets producteur et groupes sélectionnés")
         self.dashboard = DashboardWidget()
+        self.datastore_info_tab = DatastoreInfoTab()
+        self.datastore_info_tab.refreshListRequested.connect(self._refresh_datastore_list)
+        self.datastore_info_tab.detailRequested.connect(self._load_datastore_detail)
         self.tabs.addTab(self.consumer_selector, "Consommateur")
         self.tabs.addTab(self.producer_selector, "Producteur")
         self.tabs.addTab(self.dashboard, "Dashboard")
+        self.tabs.addTab(self.datastore_info_tab, "Datastores")
         root.addWidget(self.tabs, 1)
 
         self.period_panel = PeriodPanel()
         root.addWidget(self.period_panel)
+
+        run_row = QHBoxLayout()
+        run_row.addWidget(self.btn_run)
+        self.btn_run.clicked.connect(self._run_query)
+        run_row.addStretch()
+        root.addLayout(run_row)
 
         exports = QHBoxLayout()
         self.btn_export_csv = QPushButton("Exporter CSV…")
@@ -169,7 +180,15 @@ class MainDialog(QDialog):
         return ApiClient(QgsTransport(authcfg))
 
     def _busy_buttons(self) -> tuple:
-        return (self.btn_refresh, self.btn_use_cache, self.btn_clear_cache, self.btn_run, self.btn_groups)
+        return (
+            self.btn_refresh,
+            self.btn_use_cache,
+            self.btn_clear_cache,
+            self.btn_run,
+            self.btn_groups,
+            self.datastore_info_tab.btn_refresh_list,
+            self.datastore_info_tab.btn_load_detail,
+        )
 
     def _set_busy(self, busy: bool) -> None:
         for button in self._busy_buttons():
@@ -208,6 +227,10 @@ class MainDialog(QDialog):
             self._open_settings()
 
     def _load_from_api(self) -> None:
+        """Section 3: picking the datastores to reload happens before the
+        (slow, per-datastore) catalog load itself - an account in many
+        communities would otherwise be forced through a full reload every
+        time."""
         if self._active_task is not None:
             QMessageBox.information(
                 self, "Opération en cours",
@@ -218,7 +241,36 @@ class MainDialog(QDialog):
         if client is None:
             return
 
-        task = CatalogLoadTask(client)
+        list_task = DatastoreListTask(client)
+        list_dialog = ProgressDialog("Liste des datastores accessibles", list_task, self)
+
+        def on_list_loaded(refs):
+            self._finish_task()
+            list_dialog.accept()
+            if not refs:
+                QMessageBox.information(self, "Datastores", "Aucun datastore accessible sur ce compte.")
+                return
+            selection = DatastoreSelectionDialog(refs, settings_store.get_selected_datastore_ids(), self)
+            if selection.exec() != QDialog.Accepted:
+                return
+            selected_ids = selection.selected_ids()
+            if not selected_ids:
+                QMessageBox.information(self, "Datastores", "Sélectionnez au moins un datastore à actualiser.")
+                return
+            settings_store.set_selected_datastore_ids(selected_ids)
+            self._start_catalog_load(client, selected_ids)
+
+        def on_list_failed(message, status):
+            self._finish_task()
+            list_dialog.reject()
+            self._show_operation_error("Liste des datastores", message, status)
+
+        list_task.loaded.connect(on_list_loaded)
+        list_task.failed.connect(on_list_failed)
+        self._start_task(list_task, list_dialog)
+
+    def _start_catalog_load(self, client: ApiClient, datastore_filter: set) -> None:
+        task = CatalogLoadTask(client, datastore_filter=datastore_filter)
         dialog = ProgressDialog("Chargement du catalogue Géoplateforme", task, self)
 
         def on_loaded(catalog):
@@ -231,6 +283,66 @@ class MainDialog(QDialog):
             self._finish_task()
             dialog.reject()
             self._show_operation_error("Chargement du catalogue", message, status)
+
+        task.loaded.connect(on_loaded)
+        task.failed.connect(on_failed)
+        self._start_task(task, dialog)
+
+    # -- datastores tab ---------------------------------------------------
+    def _refresh_datastore_list(self) -> None:
+        if self._active_task is not None:
+            QMessageBox.information(
+                self, "Opération en cours",
+                "Une opération est déjà en cours ; patientez ou annulez-la avant d'en lancer une autre.",
+            )
+            return
+        client = self._client()
+        if client is None:
+            return
+
+        task = DatastoreListTask(client)
+        dialog = ProgressDialog("Liste des datastores accessibles", task, self)
+
+        def on_loaded(refs):
+            self._finish_task()
+            dialog.accept()
+            self.datastore_info_tab.set_datastore_refs(refs)
+
+        def on_failed(message, status):
+            self._finish_task()
+            dialog.reject()
+            self._show_operation_error("Liste des datastores", message, status)
+
+        task.loaded.connect(on_loaded)
+        task.failed.connect(on_failed)
+        self._start_task(task, dialog)
+
+    def _load_datastore_detail(self, refs: list) -> None:
+        if self._active_task is not None:
+            QMessageBox.information(
+                self, "Opération en cours",
+                "Une opération est déjà en cours ; patientez ou annulez-la avant d'en lancer une autre.",
+            )
+            return
+        client = self._client()
+        if client is None:
+            return
+
+        task = DatastoreInfoTask(client, refs)
+        dialog = ProgressDialog("Détail des datastores", task, self)
+
+        def on_loaded(infos, errors):
+            self._finish_task()
+            dialog.accept()
+            self.datastore_info_tab.apply_datastore_infos(infos, errors)
+            if errors:
+                details = "\n".join(f"- {e.datastore_name} : {e.message}" for e in errors)
+                QMessageBox.warning(self, "Chargement partiel", f"Certains datastores n'ont pas pu être chargés :\n{details}")
+
+        def on_failed(message, status):
+            self._finish_task()
+            dialog.reject()
+            self._show_operation_error("Détail des datastores", message, status)
 
         task.loaded.connect(on_loaded)
         task.failed.connect(on_failed)

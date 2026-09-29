@@ -1,5 +1,5 @@
 from geoplateforme_usage_stats.core.models import CONSUMER_PERMISSION, ENDPOINT, OFFERING, PRODUCER_PERMISSION
-from geoplateforme_usage_stats.net.catalog_service import build_catalog
+from geoplateforme_usage_stats.net.catalog_service import build_catalog, list_datastore_refs
 from geoplateforme_usage_stats.net.progress import ProgressEvent
 
 
@@ -132,3 +132,27 @@ def test_failing_stage_keeps_other_stages_of_the_same_datastore(fake_transport, 
     assert PRODUCER_PERMISSION in kinds
     assert ENDPOINT not in kinds
     assert [(e.datastore_id, e.stage) for e in catalog.errors] == [("ds-1", "endpoints")]
+
+
+def test_list_datastore_refs(fake_transport, api_client):
+    _wire_two_datastores(fake_transport)
+    refs = list_datastore_refs(api_client)
+    assert [(r.datastore_id, r.name) for r in refs] == [("ds-1", "IGN_Recette"), ("ds-2", "IGN_Prod")]
+    assert fake_transport.call_count("/users/me") == 1
+
+
+def test_build_catalog_respects_datastore_filter(fake_transport, api_client):
+    _wire_two_datastores(fake_transport)
+    catalog = build_catalog(api_client, datastore_filter={"ds-1"})
+    assert {i.datastore_id for i in catalog.items if i.datastore_id} == {"ds-1"}
+    assert fake_transport.call_count("/datastores/ds-2/offerings") == 0
+    # consumer permissions are account-wide, not affected by the datastore filter
+    assert any(i.kind == CONSUMER_PERMISSION for i in catalog.items)
+
+
+def test_build_catalog_empty_filter_loads_no_datastore(fake_transport, api_client):
+    _wire_two_datastores(fake_transport)
+    catalog = build_catalog(api_client, datastore_filter=set())
+    assert not any(i.datastore_id for i in catalog.items)
+    assert fake_transport.call_count("/datastores/ds-1/offerings") == 0
+    assert fake_transport.call_count("/datastores/ds-2/offerings") == 0

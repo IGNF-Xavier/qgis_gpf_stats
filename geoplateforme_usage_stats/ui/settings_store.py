@@ -4,6 +4,7 @@ from __future__ import annotations
 from qgis.core import QgsApplication, QgsSettings
 
 AUTH_KEY = "geoplateforme_usage_stats/authcfg"
+DATASTORE_SELECTION_KEY = "geoplateforme_usage_stats/selected_datastore_ids"
 
 
 class QgsGroupStore:
@@ -27,3 +28,12 @@ def set_authcfg(authcfg: str) -> None:
 def cache_directory() -> str:
     base = QgsApplication.qgisSettingsDirPath()
     return str(base) + "geoplateforme_usage_stats"
+
+
+def get_selected_datastore_ids() -> set:
+    raw = str(QgsSettings().value(DATASTORE_SELECTION_KEY, "") or "")
+    return {part for part in raw.split(",") if part}
+
+
+def set_selected_datastore_ids(datastore_ids) -> None:
+    QgsSettings().setValue(DATASTORE_SELECTION_KEY, ",".join(sorted(datastore_ids)))

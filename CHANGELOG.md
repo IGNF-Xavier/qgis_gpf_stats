@@ -2,6 +2,18 @@
 
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [7.3.0] - 2026-09-29
+
+### Ajouté
+- Nouvel onglet **Datastores** : liste des datastores accessibles avec recherche et sélection multiple, puis chargement à la demande (par lot) du détail de chaque datastore coché - stockage utilisé/quota par backend (base de données, dépôts, annexes) et liste des endpoints disponibles (type, visibilité, nombre d'offres raccordées, URLs). Chaque appel de détail peut prendre jusqu'à 30 secondes côté serveur ; l'onglet ne charge donc jamais rien tout seul.
+- « Actualiser depuis l'API » demande maintenant, avant le chargement du catalogue, quels datastores recharger (liste rapide puis sélection) au lieu de systématiquement tout recharger - utile pour un compte membre de nombreuses communautés. Le dernier choix est mémorisé pour la prochaine fois.
+
+### Modifié
+- Le bouton « Interroger la sélection » est déplacé sous les onglets, à côté de la période, plutôt que dans la barre d'actions du haut.
+
+### Corrigé
+- Authentification OAuth2 : un échec d'application de la configuration (jeton absent/rejeté) n'était jamais détecté sur certaines versions de QGIS, à cause d'une différence de signature de l'API interne de QGIS. La requête partait alors sans authentification au lieu d'échouer immédiatement avec un message clair.
+
 ## [7.2.3] - 2026-09-28
 
 ### Corrigé

@@ -23,6 +23,7 @@ from ..core.models import (
     CatalogItem,
     CONSUMER_PERMISSION,
     DatastoreLoadError,
+    DatastoreRef,
     ENDPOINT,
     OFFERING,
     PRODUCER_PERMISSION,
@@ -35,15 +36,22 @@ def _quote(value: str) -> str:
     return quote(str(value), safe="")
 
 
-def _list_datastores(client: ApiClient, is_cancelled: CancelCheck) -> dict[str, str]:
+def list_datastore_refs(client: ApiClient, is_cancelled: CancelCheck = never_cancelled) -> list[DatastoreRef]:
+    """Cheap listing (single ``GET /users/me`` call) of every datastore the
+    account can access - used both to build the full catalog and to let the
+    user pick a subset before running the much slower per-datastore calls."""
     user, _, _ = client.get_json("/users/me", is_cancelled=is_cancelled)
-    datastores: dict[str, str] = {}
+    refs: list[DatastoreRef] = []
+    seen: set[str] = set()
     for membership in user.get("communities_member", []) if isinstance(user, dict) else []:
         community = membership.get("community") or {}
         datastore_id = extract_id(community.get("datastore"))
-        if datastore_id:
-            datastores[datastore_id] = str(community.get("name") or community.get("technical_name") or datastore_id)
-    return datastores
+        if datastore_id and datastore_id not in seen:
+            seen.add(datastore_id)
+            technical_name = str(community.get("technical_name") or "")
+            name = str(community.get("name") or technical_name or datastore_id)
+            refs.append(DatastoreRef(datastore_id=datastore_id, name=name, technical_name=technical_name))
+    return refs
 
 
 def _consumer_permissions(client: ApiClient, is_cancelled: CancelCheck) -> list[CatalogItem]:
@@ -181,17 +189,23 @@ def build_catalog(
     client: ApiClient,
     progress_callback: ProgressCallback = noop_progress,
     is_cancelled: CancelCheck = never_cancelled,
+    datastore_filter: "set[str] | None" = None,
 ) -> Catalog:
+    """``datastore_filter``, when given, restricts the (slow) per-datastore
+    loop to those ids - consumer permissions are always fetched, since they
+    are not tied to any one datastore."""
     items: list[CatalogItem] = []
     errors: list[DatastoreLoadError] = []
 
     progress_callback(ProgressEvent("connect", "Connexion et récupération de /users/me"))
-    datastores = _list_datastores(client, is_cancelled)
+    refs = list_datastore_refs(client, is_cancelled)
+    if datastore_filter is not None:
+        refs = [ref for ref in refs if ref.datastore_id in datastore_filter]
 
     progress_callback(ProgressEvent("consumer_permissions", "Récupération des permissions consommateur"))
     items.extend(_consumer_permissions(client, is_cancelled))
 
-    datastore_list = list(datastores.items())
+    datastore_list = [(ref.datastore_id, ref.name) for ref in refs]
     for index, (datastore_id, datastore_name) in enumerate(datastore_list, 1):
         if is_cancelled():
             break

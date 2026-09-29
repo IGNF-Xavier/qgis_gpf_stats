@@ -41,7 +41,15 @@ class QgsTransport:
         except AttributeError:
             pass
 
-        if not QgsApplication.authManager().updateNetworkRequest(request, self._authcfg):
+        # On some PyQGIS builds this returns a bare bool; on others a
+        # (bool, QNetworkRequest) tuple - unpacking unconditionally would
+        # make the bool case crash, and testing plain truthiness of the
+        # tuple case always passes (a non-empty tuple is truthy) even when
+        # the applied bool is False, silently hiding auth failures.
+        applied = QgsApplication.authManager().updateNetworkRequest(request, self._authcfg)
+        if isinstance(applied, tuple):
+            applied, request = applied
+        if not applied:
             return TransportResponse(status=0, headers={}, body=b"", network_error="Impossible d'appliquer la configuration OAuth2.")
 
         reply = QgsNetworkAccessManager.instance().get(request)

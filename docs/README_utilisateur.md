@@ -1,9 +1,9 @@
-# Statistiques analytiques Géoplateforme — 7.2.3 — Guide utilisateur
+# Statistiques analytiques Géoplateforme — 7.3.0 — Guide utilisateur
 
 ## 1. Installation
 
 1. Dans QGIS : **Extensions → Installer/Gérer les extensions → Installer depuis un ZIP**.
-2. Sélectionnez `geoplateforme_usage_stats_plugin_7.2.3.zip`.
+2. Sélectionnez `geoplateforme_usage_stats_plugin_7.3.0.zip`.
 3. Activez l'extension. Un menu **Statistiques analytiques Géoplateforme** apparaît dans **Extensions**.
 
 Prérequis : QGIS 3.40 ou supérieur (testé sur 3.40.4). Aucune dépendance à installer séparément (voir `DEPENDANCES.md`).
@@ -24,7 +24,7 @@ Sélectionnez la configuration d'authentification OAuth2 QGIS à utiliser pour i
 
 Dans la fenêtre principale (**Ouvrir…**), trois boutons gèrent le catalogue :
 
-- **Actualiser depuis l'API** : relance un chargement complet, avec une fenêtre de progression qui affiche l'étape en cours, le datastore traité, le nombre d'offerings/endpoints/permissions déjà récupérés, le temps écoulé et un bouton **Annuler**.
+- **Actualiser depuis l'API** : affiche d'abord la liste (rapide) des datastores accessibles, pour choisir lesquels recharger — utile si votre compte appartient à de nombreuses communautés et que vous ne voulez pas attendre un chargement complet à chaque fois. Les permissions consommateur, elles, sont toujours actualisées. Le choix est mémorisé pour la prochaine fois. Le chargement lui-même s'affiche ensuite dans une fenêtre de progression qui montre l'étape en cours, le datastore traité, le nombre d'offerings/endpoints/permissions déjà récupérés, le temps écoulé et un bouton **Annuler**.
 - **Utiliser le cache** : réutilise le dernier catalogue chargé (stocké localement, horodaté). Un avertissement s'affiche si le cache a plus de 6 heures.
 - **Vider le cache** : supprime le cache local.
 
@@ -62,7 +62,7 @@ Préréglages : 7 derniers jours, 30 derniers jours, mois en cours, mois précé
 
 ## 7. Interroger et lire les résultats
 
-**Interroger la sélection** lance la requête en tâche de fond (l'interface reste utilisable), avec la même fenêtre de progression et un bouton Annuler.
+Le bouton **Interroger la sélection**, sous les onglets et la période, lance la requête en tâche de fond (l'interface reste utilisable), avec la même fenêtre de progression et un bouton Annuler.
 
 L'onglet **Dashboard** se remplit automatiquement : indicateurs et graphiques, toujours calculés pour **un seul niveau d'analyse à la fois** (offerings, endpoints, permissions consommateur, permissions producteur ou groupes) — jamais additionnés entre eux. Le sélecteur « Niveau d'analyse » ne propose que les niveaux réellement interrogés : si vous n'avez sélectionné que des endpoints, seul « Endpoints » y apparaît.
 
@@ -79,7 +79,15 @@ Un exemple généré à partir de données synthétiques est fourni : `samples/s
 
 Le bouton **« Glossaire / Aide… »**, en bas de la fenêtre principale, ouvre une fenêtre non modale (elle reste ouverte pendant que vous continuez à utiliser le plugin) définissant offering, datastore, endpoint, permission producteur/consommateur, groupe utilisateur, niveau d'analyse, hits, volume transféré et les statuts de couverture. Le même contenu figure dans la feuille **Glossaire** de chaque export XLSX.
 
-## 9. Lire le statut de couverture
+## 9. Onglet Datastores
+
+Cet onglet donne, pour chaque datastore accessible, le stockage utilisé/quota (base de données, dépôts, annexes) et la liste des endpoints disponibles (type, visibilité, nombre d'offres raccordées, URLs) — informations issues de l'API Entrepôt (`GET /datastores/{id}`), indépendamment de toute interrogation de statistiques.
+
+- **Actualiser la liste des datastores** : récupère la liste (rapide) des datastores accessibles ; le détail n'est pas encore chargé (colonnes « (non chargé) »).
+- Cochez les datastores qui vous intéressent (recherche et Tout cocher/décocher disponibles), puis **Charger le détail des datastores cochés**. Chaque datastore coché peut prendre jusqu'à 30 secondes côté serveur ; ne cochez que ce dont vous avez besoin. Une erreur sur un datastore n'empêche pas de voir le détail des autres.
+- Sélectionner une ligne affiche le détail complet (stockage par backend avec pourcentage utilisé, endpoints avec info-bulle listant leurs URLs) dans le panneau du bas.
+
+## 10. Lire le statut de couverture
 
 Le plugin distingue explicitement :
 
@@ -89,6 +97,6 @@ Le plugin distingue explicitement :
 
 Statuts possibles : `complete_coverage`, `partial_coverage`, `no_temporal_detail`, `no_usage`, `not_connected`, `error`. Chaque ligne de la feuille `Controle_couverture` porte une interprétation en français (`coverage_interpretation`).
 
-## 10. Migration depuis la version 6.1.0
+## 11. Migration depuis la version 6.1.0
 
 Vos groupes 6.1.0 sont repris automatiquement au premier chargement (voir `MIGRATION_6.1_VERS_7.0.md`) — aucune action requise.

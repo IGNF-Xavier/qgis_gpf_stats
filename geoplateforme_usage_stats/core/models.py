@@ -84,6 +84,67 @@ class DatastoreLoadError:
     message: str
 
 
+@dataclass(frozen=True)
+class DatastoreRef:
+    """A datastore the account can access, known from ``/users/me`` alone
+    (name + id, no detail) - cheap to list, used to let the user pick which
+    datastores to load before running the slower per-datastore calls."""
+
+    datastore_id: str
+    name: str
+    technical_name: str = ""
+
+
+@dataclass(frozen=True)
+class StorageUsage:
+    name: str
+    type: str
+    use_bytes: int
+    quota_bytes: int
+
+
+@dataclass(frozen=True)
+class DatastoreEndpointInfo:
+    name: str
+    technical_name: str
+    type: str
+    open: bool
+    use: int
+    quota: int
+    urls: tuple = ()
+
+
+@dataclass
+class DatastoreInfo:
+    """Full detail of one datastore (``GET /datastores/{id}``): storage
+    usage/quota per backend and every endpoint provisioned for it, whether
+    or not it currently has any offering attached."""
+
+    datastore_id: str
+    name: str
+    technical_name: str
+    active: bool
+    creation: str = ""
+    data_storages: list = field(default_factory=list)
+    uploads_storage: Optional[StorageUsage] = None
+    annexes_storage: Optional[StorageUsage] = None
+    endpoints: list = field(default_factory=list)
+
+    def total_use_bytes(self) -> int:
+        total = sum(s.use_bytes for s in self.data_storages)
+        for extra in (self.uploads_storage, self.annexes_storage):
+            if extra is not None:
+                total += extra.use_bytes
+        return total
+
+    def total_quota_bytes(self) -> int:
+        total = sum(s.quota_bytes for s in self.data_storages)
+        for extra in (self.uploads_storage, self.annexes_storage):
+            if extra is not None:
+                total += extra.quota_bytes
+        return total
+
+
 @dataclass
 class Catalog:
     """Full producer + consumer catalog, plus any partial-load errors."""

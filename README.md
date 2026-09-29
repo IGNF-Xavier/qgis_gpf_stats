@@ -10,6 +10,7 @@ Extension QGIS pour consulter et analyser les **statistiques d'usage de la Géop
   - *Consommateur* : les permissions dont vous bénéficiez (`/users/me/permissions`).
   - *Producteur* : les datastores auxquels vous avez accès, avec leurs offerings, endpoints et permissions.
 - **Catalogue navigable** : arborescence catégorie → datastore, recherche, double liste de sélection, UUID en info-bulle. Chaque endpoint indique son usage réel (`X/Y offres raccordées`).
+- **Onglet Datastores** : stockage utilisé/quota et endpoints disponibles pour chaque datastore accessible, chargés à la demande (par lot sélectionné). « Actualiser depuis l'API » propose aussi de choisir les datastores à recharger, pour éviter un rechargement complet sur un compte membre de nombreuses communautés.
 - **Groupes d'offres personnalisés** : composés localement, jamais figés dans le code ; une offre peut appartenir à plusieurs groupes, avec signalement des chevauchements.
 - **Traitements en tâche de fond** (`QgsTask`) : barre de progression, annulation, erreurs isolées par datastore ; le reste de QGIS reste utilisable pendant un chargement ou une interrogation.
 - **Période explicite** : préréglages (7 jours, 30 jours, mois, année…) ou dates personnalisées, pas fin de 5 minutes lorsque la période le permet, regroupement jour / semaine / mois.

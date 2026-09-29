@@ -19,6 +19,15 @@ Base : `https://data.geopf.fr/api`. Toutes les requêtes passent par le gestionn
 | `GET /datastores/{datastore}/permissions` | Liste des permissions producteur (paginé) |
 | `GET /datastores/{datastore}/endpoints` | Liste des endpoints du datastore (paginé) |
 
+## Onglet Datastores (détail par datastore)
+
+| Route | Usage |
+|---|---|
+| `GET /users/me` | Liste rapide des datastores accessibles, réutilisée pour peupler la liste à cocher (`net/catalog_service.py::list_datastore_refs`) |
+| `GET /datastores/{datastore}` | Détail complet d'un datastore : stockage utilisé/quota par backend (`storages.data`/`uploads`/`annexes`) et endpoints provisionnés avec leur usage (`endpoints[].use`/`quota`), qu'ils aient ou non une offre raccordée (`net/datastore_info_service.py`) |
+
+Cette route est nettement plus lente que les autres (10 à 30 secondes observées en production), probablement parce que le serveur agrège l'usage de stockage à la volée ; il n'existe pas de variante allégée. Chaque appel est donc déclenché explicitement, datastore par datastore, et jamais en boucle automatique sur l'ensemble du compte.
+
 ## Statistiques
 
 | Route | Usage |
