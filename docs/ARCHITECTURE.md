@@ -35,7 +35,9 @@ geoplateforme_usage_stats/
 │
 ├── exporters/
 │   ├── csv_exporter.py      6 exports CSV nommés
-│   └── xlsx_exporter.py     classeur à 10 feuilles avec graphiques (openpyxl)
+│   ├── xlsx_exporter.py     classeur à 10 feuilles avec graphiques (openpyxl)
+│   └── datastore_csv_exporter.py  export dédié à l'onglet Datastores (stockage, endpoints),
+│                                  indépendant de toute interrogation/période
 │
 ├── charts/
 │   └── chart_widgets.py     Qt Charts si disponible, sinon rendu QPainter de repli
@@ -54,7 +56,7 @@ geoplateforme_usage_stats/
 
 ## Pourquoi cette séparation
 
-- **`core/` ne dépend jamais de Qt.** Toute règle métier (couverture, agrégation, KPI, groupes, période, cache) est donc testable avec `pytest` seul, sans QGIS installé — c'est ce qui a permis d'écrire les 86 tests unitaires du dépôt sans environnement QGIS.
+- **`core/` ne dépend jamais de Qt.** Toute règle métier (couverture, agrégation, KPI, groupes, période, cache) est donc testable avec `pytest` seul, sans QGIS installé — c'est ce qui a permis d'écrire les 90 tests unitaires du dépôt sans environnement QGIS.
 - **`net/` isole le seul point de contact avec le réseau** derrière un protocole `Transport` (une méthode `request(path, params) -> TransportResponse`). Les tests utilisent un `FakeTransport` ; l'exécution réelle utilise `QgsTransport` (QgsNetworkAccessManager + gestionnaire d'authentification QGIS, proxys et paramètres réseau QGIS respectés).
 - **`workers/` est la seule couche qui touche aux threads.** `QgsTask` exécute `core`/`net` en tâche de fond et ne communique avec l'UI que par signaux Qt (`stepProgress`, `loaded`/`failed`, `finishedWithResults`) — jamais d'appel direct à un widget depuis le thread de travail.
 - **`ui/` ne fait qu'assembler.** `main_dialog.py` ne recalcule rien lui-même : il appelle `core.group_service`, `core.export_context`, `net.catalog_service`/`stats_service` via les workers, et reflète le résultat dans les widgets.

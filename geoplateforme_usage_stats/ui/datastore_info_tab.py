@@ -33,6 +33,7 @@ OVER_QUOTA_COLOR = QColor("#990000")
 class DatastoreInfoTab(QWidget):
     refreshListRequested = pyqtSignal()
     detailRequested = pyqtSignal(list)  # list[DatastoreRef]
+    exportRequested = pyqtSignal()
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -61,10 +62,12 @@ class DatastoreInfoTab(QWidget):
         self.btn_check_all = QPushButton("Tout cocher")
         self.btn_uncheck_all = QPushButton("Tout décocher")
         self.btn_load_detail = QPushButton("Charger le détail des datastores cochés")
+        self.btn_export = QPushButton("Exporter le détail chargé (CSV)…")
         self.btn_check_all.clicked.connect(lambda: self._set_all_checked(True))
         self.btn_uncheck_all.clicked.connect(lambda: self._set_all_checked(False))
         self.btn_load_detail.clicked.connect(self._emit_detail_request)
-        for button in (self.btn_check_all, self.btn_uncheck_all, self.btn_load_detail):
+        self.btn_export.clicked.connect(self.exportRequested.emit)
+        for button in (self.btn_check_all, self.btn_uncheck_all, self.btn_load_detail, self.btn_export):
             bulk_row.addWidget(button)
         bulk_row.addStretch()
         self.count_label = QLabel()
@@ -182,6 +185,9 @@ class DatastoreInfoTab(QWidget):
         refs = self.checked_refs()
         if refs:
             self.detailRequested.emit(refs)
+
+    def loaded_infos(self) -> list:
+        return list(self._infos_by_id.values())
 
     # -- detail panel ---------------------------------------------------------
     @staticmethod

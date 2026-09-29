@@ -1,9 +1,9 @@
-# Statistiques analytiques Géoplateforme — 7.3.1 — Guide utilisateur
+# Statistiques analytiques Géoplateforme — 7.3.2 — Guide utilisateur
 
 ## 1. Installation
 
 1. Dans QGIS : **Extensions → Installer/Gérer les extensions → Installer depuis un ZIP**.
-2. Sélectionnez `geoplateforme_usage_stats_plugin_7.3.1.zip`.
+2. Sélectionnez `geoplateforme_usage_stats_plugin_7.3.2.zip`.
 3. Activez l'extension. Un menu **Statistiques analytiques Géoplateforme** apparaît dans **Extensions**.
 
 Prérequis : QGIS 3.40 ou supérieur (testé sur 3.40.4). Aucune dépendance à installer séparément (voir `DEPENDANCES.md`).
@@ -72,6 +72,8 @@ Une ligne d'état au-dessus des graphiques rappelle en permanence les filtres ac
 
 ## 8. Exporter
 
+Ces deux boutons (et le panneau Période dont ils dépendent) n'apparaissent que sur les onglets Consommateur, Producteur et Dashboard — ils exportent les résultats d'une interrogation, sans rapport avec l'onglet Datastores qui a son propre export (voir section 9).
+
 - **Exporter CSV…** : choisissez un dossier et un préfixe ; le plugin écrit un fichier par angle d'analyse (synthèse, séries API brutes, séries analytiques, séries de groupes, contrôle de couverture, composition des groupes) — seuls les fichiers non vides sont écrits.
 - **Exporter XLSX analytique…** : classeur à 10 feuilles (Dashboard, Synthese, Series_API, Series_analytiques, Series_groupes, Controle_couverture, Groupes, Periode, Journal_erreurs, **Glossaire**), directement exploitable dans Excel, avec graphiques intégrés. La feuille Dashboard n'affiche un indicateur, un tableau ou un graphique « Top 15 » pour un niveau que si ce niveau fait partie de la sélection interrogée — pas d'offerings sélectionnées, pas de tableau « Top 15 offerings ».
 
@@ -88,6 +90,7 @@ Cet onglet donne, pour chaque datastore accessible, le stockage utilisé/quota (
 - **Actualiser la liste des datastores** : récupère la liste (rapide) des datastores accessibles ; le détail n'est pas encore chargé (colonnes « (non chargé) »).
 - Cochez les datastores qui vous intéressent (recherche et Tout cocher/décocher disponibles), puis **Charger le détail des datastores cochés**. Chaque datastore coché peut prendre jusqu'à 30 secondes côté serveur ; ne cochez que ce dont vous avez besoin. Une erreur sur un datastore n'empêche pas de voir le détail des autres.
 - Sélectionner une ligne affiche le détail complet (stockage par backend avec pourcentage utilisé, endpoints avec info-bulle listant leurs URLs) dans le panneau du bas.
+- **Exporter le détail chargé (CSV)…** : écrit deux fichiers (`..._stockage.csv`, `..._endpoints.csv`) couvrant tous les datastores dont le détail a été chargé dans l'onglet — indépendant des exports de la section 8, qui portent sur les résultats d'une interrogation.
 
 ## 10. Lire le statut de couverture
 

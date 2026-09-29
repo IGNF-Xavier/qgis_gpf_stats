@@ -2,6 +2,14 @@
 
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [7.3.2] - 2026-09-29
+
+### Ajouté
+- **Export dédié à l'onglet Datastores** : bouton « Exporter le détail chargé (CSV)… », qui écrit deux fichiers (stockage, endpoints) couvrant tous les datastores dont le détail a été chargé dans l'onglet - indépendant des exports CSV/XLSX de résultats de requête.
+
+### Modifié
+- Les boutons **Exporter CSV…** / **Exporter XLSX analytique…** (qui exportent les résultats d'une interrogation) n'apparaissent plus sur l'onglet Datastores, sans rapport avec eux.
+
 ## [7.3.1] - 2026-09-29
 
 ### Modifié

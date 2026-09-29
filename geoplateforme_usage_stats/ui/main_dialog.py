@@ -22,6 +22,7 @@ from qgis.PyQt.QtWidgets import (
     QPushButton,
     QTabWidget,
     QVBoxLayout,
+    QWidget,
 )
 
 from ..core import cache_service
@@ -29,7 +30,7 @@ from ..core.export_context import build_export_context
 from ..core.group_service import GroupService
 from ..core.models import ENDPOINT, PRODUCER_PERMISSION
 from ..core.period_service import PeriodValidationError
-from ..exporters import csv_exporter, xlsx_exporter
+from ..exporters import csv_exporter, datastore_csv_exporter, xlsx_exporter
 from ..net.api_client import ApiClient
 from ..net.qgis_transport import QgsTransport
 from ..workers.tasks import CatalogLoadTask, DatastoreInfoTask, DatastoreListTask, StatsQueryTask
@@ -75,7 +76,7 @@ class MainDialog(QDialog):
         self._active_task = None
         self._active_dialog = None
 
-        self.setWindowTitle("Statistiques analytiques Géoplateforme 7.3.1")
+        self.setWindowTitle("Statistiques analytiques Géoplateforme 7.3.2")
         self.resize(1500, 980)
         root = QVBoxLayout(self)
 
@@ -115,11 +116,12 @@ class MainDialog(QDialog):
         self.datastore_info_tab = DatastoreInfoTab()
         self.datastore_info_tab.refreshListRequested.connect(self._refresh_datastore_list)
         self.datastore_info_tab.detailRequested.connect(self._load_datastore_detail)
+        self.datastore_info_tab.exportRequested.connect(self._export_datastore_info)
         self.tabs.addTab(self.consumer_selector, "Consommateur")
         self.tabs.addTab(self.producer_selector, "Producteur")
         self.tabs.addTab(self.dashboard, "Dashboard")
         self.tabs.addTab(self.datastore_info_tab, "Datastores")
-        self.tabs.currentChanged.connect(self._update_period_panel_visibility)
+        self.tabs.currentChanged.connect(self._update_context_panels_visibility)
         root.addWidget(self.tabs, 1)
 
         # The period only drives a query launched from Consommateur/Producteur ;
@@ -130,8 +132,10 @@ class MainDialog(QDialog):
         self.period_panel.runRequested.connect(self._run_query)
         self.btn_run = self.period_panel.run_button
         root.addWidget(self.period_panel)
-        self._update_period_panel_visibility(self.tabs.currentIndex())
 
+        # Same reasoning for the query-results exports: they export
+        # self.results (a stats query), which the Datastores tab has nothing
+        # to do with - it gets its own dedicated export instead.
         exports = QHBoxLayout()
         self.btn_export_csv = QPushButton("Exporter CSV…")
         self.btn_export_xlsx = QPushButton("Exporter XLSX analytique…")
@@ -140,7 +144,10 @@ class MainDialog(QDialog):
         exports.addWidget(self.btn_export_csv)
         exports.addWidget(self.btn_export_xlsx)
         exports.addStretch()
-        root.addLayout(exports)
+        self.exports_widget = QWidget()
+        self.exports_widget.setLayout(exports)
+        root.addWidget(self.exports_widget)
+        self._update_context_panels_visibility(self.tabs.currentIndex())
 
         self.status_label = QLabel(
             "Chargez les droits (API ou cache), composez éventuellement des groupes, "
@@ -405,9 +412,10 @@ class MainDialog(QDialog):
         groups_by_id = {group.group_id: group for group in self.groups}
         self.producer_selector.set_available(self._producer_entries(), groups_by_id)
 
-    def _update_period_panel_visibility(self, index: int) -> None:
+    def _update_context_panels_visibility(self, index: int) -> None:
         current = self.tabs.widget(index)
         self.period_panel.setVisible(current in (self.consumer_selector, self.producer_selector))
+        self.exports_widget.setVisible(current is not self.datastore_info_tab)
 
     # -- groups -------------------------------------------------------------
     def _open_group_editor(self) -> None:
@@ -531,6 +539,22 @@ class MainDialog(QDialog):
             QMessageBox.critical(self, "Export XLSX", str(exc))
             return
         QMessageBox.information(self, "Export XLSX", f"Classeur créé :\n{path}")
+
+    def _export_datastore_info(self) -> None:
+        infos = self.datastore_info_tab.loaded_infos()
+        if not infos:
+            QMessageBox.information(
+                self, "Export", "Chargez d'abord le détail d'au moins un datastore (bouton « Charger le détail des datastores cochés »).",
+            )
+            return
+        directory = QFileDialog.getExistingDirectory(self, "Choisir le dossier d'export")
+        if not directory:
+            return
+        base_name, ok = QInputDialog.getText(self, "Export Datastores", "Préfixe des fichiers :", text="stats_geoplateforme_datastores")
+        if not ok or not base_name.strip():
+            return
+        written = datastore_csv_exporter.export_datastore_info_csv(directory, base_name.strip(), infos)
+        QMessageBox.information(self, "Export Datastores", "Fichiers écrits :\n" + "\n".join(Path(p).name for p in written))
 
     def _open_settings(self) -> None:
         SettingsDialog(self).exec()
