@@ -2,6 +2,14 @@
 
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [7.3.1] - 2026-09-29
+
+### Modifié
+- Le bouton **« Interroger la sélection »** est maintenant intégré au panneau « Période et temporalité », agrandi et mis en évidence, plutôt qu'isolé dans une rangée séparée.
+- Le panneau « Période et temporalité » (et donc le bouton « Interroger la sélection ») ne s'affiche que sur les onglets Consommateur et Producteur : ni l'onglet Dashboard (qui affiche des résultats déjà obtenus) ni l'onglet Datastores (sans rapport avec une période) n'en ont l'usage.
+- Onglet Datastores : les colonnes du tableau (Nom technique, Statut, Stockage, Endpoints) sont maintenant dimensionnées automatiquement à l'ouverture pour éviter qu'un intitulé de colonne ne se retrouve tronqué ou chevauche la ligne du dessous.
+- Onglet Datastores : le détail d'un datastore (stockage, endpoints) est désormais présenté en colonnes alignées (Nom, Type, Utilisé, Quota, Détail) plutôt qu'en une seule ligne de texte par élément ; les lignes proches ou au-delà du quota sont mises en évidence en orange/rouge.
+
 ## [7.3.0] - 2026-09-29
 
 ### Ajouté

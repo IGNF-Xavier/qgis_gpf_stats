@@ -75,7 +75,7 @@ class MainDialog(QDialog):
         self._active_task = None
         self._active_dialog = None
 
-        self.setWindowTitle("Statistiques analytiques Géoplateforme 7.3.0")
+        self.setWindowTitle("Statistiques analytiques Géoplateforme 7.3.1")
         self.resize(1500, 980)
         root = QVBoxLayout(self)
 
@@ -84,7 +84,6 @@ class MainDialog(QDialog):
         self.btn_use_cache = QPushButton("Utiliser le cache")
         self.btn_clear_cache = QPushButton("Vider le cache")
         self.btn_groups = QPushButton("Composer les groupes…")
-        self.btn_run = QPushButton("Interroger la sélection")
         self.btn_groups.setEnabled(False)
         for button, slot in (
             (self.btn_refresh, self._load_from_api),
@@ -120,16 +119,18 @@ class MainDialog(QDialog):
         self.tabs.addTab(self.producer_selector, "Producteur")
         self.tabs.addTab(self.dashboard, "Dashboard")
         self.tabs.addTab(self.datastore_info_tab, "Datastores")
+        self.tabs.currentChanged.connect(self._update_period_panel_visibility)
         root.addWidget(self.tabs, 1)
 
+        # The period only drives a query launched from Consommateur/Producteur ;
+        # Dashboard only shows results already fetched, and Datastores has
+        # nothing to do with a time period at all, so the panel (and its
+        # "Interroger la sélection" button) would be pure clutter there.
         self.period_panel = PeriodPanel()
+        self.period_panel.runRequested.connect(self._run_query)
+        self.btn_run = self.period_panel.run_button
         root.addWidget(self.period_panel)
-
-        run_row = QHBoxLayout()
-        run_row.addWidget(self.btn_run)
-        self.btn_run.clicked.connect(self._run_query)
-        run_row.addStretch()
-        root.addLayout(run_row)
+        self._update_period_panel_visibility(self.tabs.currentIndex())
 
         exports = QHBoxLayout()
         self.btn_export_csv = QPushButton("Exporter CSV…")
@@ -403,6 +404,10 @@ class MainDialog(QDialog):
     def _refresh_producer_selector(self) -> None:
         groups_by_id = {group.group_id: group for group in self.groups}
         self.producer_selector.set_available(self._producer_entries(), groups_by_id)
+
+    def _update_period_panel_visibility(self, index: int) -> None:
+        current = self.tabs.widget(index)
+        self.period_panel.setVisible(current in (self.consumer_selector, self.producer_selector))
 
     # -- groups -------------------------------------------------------------
     def _open_group_editor(self) -> None:

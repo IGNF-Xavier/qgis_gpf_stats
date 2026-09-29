@@ -7,6 +7,7 @@ refresh.
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
@@ -24,6 +25,9 @@ from qgis.PyQt.QtWidgets import (
 from ..exporters.xlsx_exporter import human_bytes
 
 COLUMNS = ("", "Nom", "Nom technique", "Statut", "Stockage", "Endpoints")
+DETAIL_COLUMNS = ("Nom", "Type", "Utilisé", "Quota", "Détail")
+NEAR_QUOTA_COLOR = QColor("#b26a00")
+OVER_QUOTA_COLOR = QColor("#990000")
 
 
 class DatastoreInfoTab(QWidget):
@@ -69,7 +73,15 @@ class DatastoreInfoTab(QWidget):
 
         self.table = QTableWidget(0, len(COLUMNS))
         self.table.setHorizontalHeaderLabels(COLUMNS)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        header = self.table.horizontalHeader()
+        # Only "Nom" stretches to fill leftover space; every other column stays
+        # Interactive (draggable) - "Nom technique" and the others get their
+        # real width from resizeColumnToContents() once populated, instead of
+        # a cramped default that made their header labels wrap onto two lines
+        # and overlap the row below.
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setStretchLastSection(False)
+        header.setMinimumSectionSize(60)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.itemChanged.connect(self._on_item_changed)
@@ -78,7 +90,10 @@ class DatastoreInfoTab(QWidget):
 
         root.addWidget(QLabel("<b>Détail du datastore sélectionné</b>"))
         self.detail_tree = QTreeWidget()
-        self.detail_tree.setHeaderHidden(True)
+        self.detail_tree.setColumnCount(len(DETAIL_COLUMNS))
+        self.detail_tree.setHeaderLabels(DETAIL_COLUMNS)
+        self.detail_tree.setAlternatingRowColors(True)
+        self.detail_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
         root.addWidget(self.detail_tree, 3)
 
     # -- populating ---------------------------------------------------------
@@ -101,8 +116,14 @@ class DatastoreInfoTab(QWidget):
             self.table.setItem(row, 4, QTableWidgetItem("(non chargé)"))
             self.table.setItem(row, 5, QTableWidgetItem("(non chargé)"))
         self.table.blockSignals(False)
+        self._resize_columns_to_contents()
         self.detail_tree.clear()
         self._refresh_count()
+
+    def _resize_columns_to_contents(self) -> None:
+        for col in range(len(COLUMNS)):
+            if col != 1:  # "Nom" is Stretch - sizing it to contents would fight that
+                self.table.resizeColumnToContents(col)
 
     def apply_datastore_infos(self, infos: list, errors: list) -> None:
         for info in infos:
@@ -121,6 +142,7 @@ class DatastoreInfoTab(QWidget):
             elif datastore_id in errors_by_id:
                 self.table.item(row, 4).setText("Erreur")
                 self.table.item(row, 5).setText(errors_by_id[datastore_id].message)
+        self._resize_columns_to_contents()
         self._show_detail_for_current_row()
 
     # -- selection / filtering -----------------------------------------------
@@ -162,6 +184,29 @@ class DatastoreInfoTab(QWidget):
             self.detailRequested.emit(refs)
 
     # -- detail panel ---------------------------------------------------------
+    @staticmethod
+    def _pct_value(use_bytes: int, quota_bytes: int):
+        return (100 * use_bytes / quota_bytes) if quota_bytes else None
+
+    @staticmethod
+    def _pct_text(pct) -> str:
+        return f"{pct:.1f} %" if pct is not None else "—"
+
+    def _make_row(self, name: str, type_: str, used_text: str, quota_text: str, detail_text: str, pct=None, bold: bool = False) -> QTreeWidgetItem:
+        item = QTreeWidgetItem([name, type_, used_text, quota_text, detail_text])
+        for col in (2, 3, 4):
+            item.setTextAlignment(col, Qt.AlignRight | Qt.AlignVCenter)
+        if bold:
+            for col in range(len(DETAIL_COLUMNS)):
+                font = item.font(col)
+                font.setBold(True)
+                item.setFont(col, font)
+        elif pct is not None and pct >= 90:
+            color = OVER_QUOTA_COLOR if pct >= 100 else NEAR_QUOTA_COLOR
+            for col in range(len(DETAIL_COLUMNS)):
+                item.setForeground(col, color)
+        return item
+
     def _show_detail_for_current_row(self) -> None:
         self.detail_tree.clear()
         row = self.table.currentRow()
@@ -172,23 +217,43 @@ class DatastoreInfoTab(QWidget):
         if info is None:
             return
 
-        storage_root = QTreeWidgetItem([f"Stockage — {human_bytes(info.total_use_bytes())} / {human_bytes(info.total_quota_bytes())}"])
+        total_use, total_quota = info.total_use_bytes(), info.total_quota_bytes()
+        total_pct = self._pct_value(total_use, total_quota)
+        storage_root = self._make_row(
+            "Stockage (total)", "", human_bytes(total_use),
+            human_bytes(total_quota) if total_quota else "—",
+            self._pct_text(total_pct), bold=True,
+        )
         self.detail_tree.addTopLevelItem(storage_root)
-        for storage in info.data_storages:
-            pct = f"{100 * storage.use_bytes / storage.quota_bytes:.1f} %" if storage.quota_bytes else "—"
-            storage_root.addChild(QTreeWidgetItem([f"{storage.name} ({storage.type}) — {human_bytes(storage.use_bytes)} / {human_bytes(storage.quota_bytes)} ({pct})"]))
+        for storage in sorted(info.data_storages, key=lambda s: s.use_bytes, reverse=True):
+            pct = self._pct_value(storage.use_bytes, storage.quota_bytes)
+            storage_root.addChild(self._make_row(
+                storage.name, storage.type, human_bytes(storage.use_bytes),
+                human_bytes(storage.quota_bytes) if storage.quota_bytes else "—",
+                self._pct_text(pct), pct,
+            ))
         for label, storage in (("Dépôts (uploads)", info.uploads_storage), ("Annexes", info.annexes_storage)):
             if storage is not None:
-                pct = f"{100 * storage.use_bytes / storage.quota_bytes:.1f} %" if storage.quota_bytes else "—"
-                storage_root.addChild(QTreeWidgetItem([f"{label} : {storage.name} — {human_bytes(storage.use_bytes)} / {human_bytes(storage.quota_bytes)} ({pct})"]))
+                pct = self._pct_value(storage.use_bytes, storage.quota_bytes)
+                storage_root.addChild(self._make_row(
+                    f"{label} : {storage.name}", storage.type, human_bytes(storage.use_bytes),
+                    human_bytes(storage.quota_bytes) if storage.quota_bytes else "—",
+                    self._pct_text(pct), pct,
+                ))
 
-        endpoints_root = QTreeWidgetItem([f"Endpoints — {len(info.endpoints)}"])
+        endpoints_root = self._make_row(f"Endpoints ({len(info.endpoints)})", "", "", "", "", bold=True)
         self.detail_tree.addTopLevelItem(endpoints_root)
         for endpoint in sorted(info.endpoints, key=lambda e: e.name.casefold()):
-            visibility = "ouvert" if endpoint.open else "restreint"
-            item = QTreeWidgetItem([f"{endpoint.name} · {endpoint.type} · {visibility} · {endpoint.use}/{endpoint.quota} offre(s) raccordée(s)"])
+            visibility = "Ouvert" if endpoint.open else "Restreint"
+            item = self._make_row(
+                endpoint.name, endpoint.type, f"{endpoint.use} offre(s)",
+                f"{endpoint.quota} max" if endpoint.quota else "—", visibility,
+            )
             if endpoint.urls:
-                item.setToolTip(0, "\n".join(endpoint.urls))
+                for col in range(len(DETAIL_COLUMNS)):
+                    item.setToolTip(col, "\n".join(endpoint.urls))
             endpoints_root.addChild(item)
 
         self.detail_tree.expandAll()
+        for col in range(1, len(DETAIL_COLUMNS)):
+            self.detail_tree.resizeColumnToContents(col)

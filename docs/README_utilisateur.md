@@ -1,9 +1,9 @@
-# Statistiques analytiques Géoplateforme — 7.3.0 — Guide utilisateur
+# Statistiques analytiques Géoplateforme — 7.3.1 — Guide utilisateur
 
 ## 1. Installation
 
 1. Dans QGIS : **Extensions → Installer/Gérer les extensions → Installer depuis un ZIP**.
-2. Sélectionnez `geoplateforme_usage_stats_plugin_7.3.0.zip`.
+2. Sélectionnez `geoplateforme_usage_stats_plugin_7.3.1.zip`.
 3. Activez l'extension. Un menu **Statistiques analytiques Géoplateforme** apparaît dans **Extensions**.
 
 Prérequis : QGIS 3.40 ou supérieur (testé sur 3.40.4). Aucune dépendance à installer séparément (voir `DEPENDANCES.md`).
@@ -62,7 +62,9 @@ Préréglages : 7 derniers jours, 30 derniers jours, mois en cours, mois précé
 
 ## 7. Interroger et lire les résultats
 
-Le bouton **Interroger la sélection**, sous les onglets et la période, lance la requête en tâche de fond (l'interface reste utilisable), avec la même fenêtre de progression et un bouton Annuler.
+Le bouton **Interroger la sélection**, intégré au panneau « Période et temporalité » (visible uniquement sur les onglets Consommateur et Producteur — Dashboard affiche des résultats déjà obtenus, Datastores n'a pas de notion de période), lance la requête en tâche de fond (l'interface reste utilisable), avec la même fenêtre de progression et un bouton Annuler.
+
+La même période et les mêmes paramètres (détails temporels, pas fin) sont appliqués à l'identique, qu'un objet interrogé vienne du périmètre Consommateur ou Producteur : `start`/`end`/`details` sont les mêmes paramètres transmis à chaque route Stats, quel que soit le type d'objet (permission, offering, endpoint).
 
 L'onglet **Dashboard** se remplit automatiquement : indicateurs et graphiques, toujours calculés pour **un seul niveau d'analyse à la fois** (offerings, endpoints, permissions consommateur, permissions producteur ou groupes) — jamais additionnés entre eux. Le sélecteur « Niveau d'analyse » ne propose que les niveaux réellement interrogés : si vous n'avez sélectionné que des endpoints, seul « Endpoints » y apparaît.
 

@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from qgis.PyQt.QtCore import QDateTime, Qt
-from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QDateTimeEdit, QGridLayout, QGroupBox, QLabel
+from qgis.PyQt.QtCore import QDateTime, Qt, pyqtSignal
+from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QDateTimeEdit, QGridLayout, QGroupBox, QLabel, QPushButton
 
 from ..core import period_service as ps
 from ..core.models import PeriodConfig
@@ -26,6 +26,8 @@ def _datetime_to_qdatetime(value: datetime) -> QDateTime:
 
 
 class PeriodPanel(QGroupBox):
+    runRequested = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__("Période et temporalité", parent)
         layout = QGridLayout(self)
@@ -51,6 +53,14 @@ class PeriodPanel(QGroupBox):
         self.info = QLabel()
         self.info.setWordWrap(True)
 
+        # The primary call-to-action of the whole window: large and right next
+        # to the period fields it depends on, instead of buried in a separate
+        # row further down.
+        self.run_button = QPushButton("Interroger la sélection")
+        self.run_button.setMinimumHeight(56)
+        self.run_button.setStyleSheet("font-weight: bold; font-size: 11pt;")
+        self.run_button.clicked.connect(self.runRequested.emit)
+
         layout.addWidget(QLabel("Préréglage"), 0, 0)
         layout.addWidget(self.preset, 0, 1)
         layout.addWidget(QLabel("Début"), 0, 2)
@@ -61,6 +71,7 @@ class PeriodPanel(QGroupBox):
         layout.addWidget(self.fine, 1, 2, 1, 2)
         layout.addWidget(QLabel("Regroupement analytique"), 1, 4)
         layout.addWidget(self.grain, 1, 5)
+        layout.addWidget(self.run_button, 0, 6, 2, 1)
         layout.addWidget(self.info, 2, 0, 1, 6)
 
         self.preset.currentIndexChanged.connect(self._apply_preset)
