@@ -1,9 +1,9 @@
-# Statistiques analytiques Géoplateforme — 7.4.0 — Guide utilisateur
+# Statistiques analytiques Géoplateforme — 7.4.1 — Guide utilisateur
 
 ## 1. Installation
 
 1. Dans QGIS : **Extensions → Installer/Gérer les extensions → Installer depuis un ZIP**.
-2. Sélectionnez `geoplateforme_usage_stats_plugin_7.4.0.zip`.
+2. Sélectionnez `geoplateforme_usage_stats_plugin_7.4.1.zip`.
 3. Activez l'extension. Un menu **Statistiques analytiques Géoplateforme** apparaît dans **Extensions**.
 
 Prérequis : QGIS 3.40 ou supérieur (testé sur 3.40.4). Aucune dépendance à installer séparément (voir `DEPENDANCES.md`).
@@ -70,7 +70,13 @@ L'onglet **Dashboard** se remplit automatiquement : indicateurs et graphiques, t
 
 Une ligne d'état au-dessus des graphiques rappelle en permanence les filtres actifs (« Niveau : … · Métrique : … · Regroupement : … · Groupe : … · Datastore : … · Type de service : … »). Les filtres Groupe / Datastore / Type de service se grisent automatiquement et repassent à « Tous » quand ils ne s'appliquent pas au niveau choisi (par exemple, le filtre Groupe n'a de sens qu'au niveau « Groupes utilisateur ») — survolez le filtre grisé pour voir pourquoi. Chaque graphique affiche aussi une légende d'une ligne expliquant précisément ce qu'il représente ; les graphiques « Répartition par datastore » et « Répartition par type de service » sont **toujours** calculés sur les offerings, quel que soit le niveau sélectionné (ils réagissent uniquement au filtre Groupe).
 
-En bas du dashboard, **trois graphiques d'évolution temporelle restent toujours visibles**, pour hits et volume transféré, quel que soit le niveau d'analyse choisi ci-dessus : évolution des offerings (une seule courbe, somme de tous les offerings interrogés), évolution par groupe (une courbe par groupe — deux groupes qui partagent une offre se chevauchent, ne pas additionner leurs valeurs) et évolution par datastore (une courbe par datastore). Ces trois-là suivent le filtre Groupe mais pas les filtres Datastore/Type de service, comme les répartitions ci-dessus. Les mêmes six graphiques figurent dans l'export XLSX (feuille Dashboard).
+En bas du dashboard, **quatre graphiques d'évolution temporelle restent toujours visibles**, pour hits et volume transféré, quel que soit le niveau d'analyse choisi ci-dessus :
+- évolution des offerings (une seule courbe, somme de tous les offerings interrogés) ;
+- évolution par offering (une courbe par offering, limitée aux 15 plus gros par hits — voir « Top 15 offerings » pour le classement complet) ;
+- évolution par groupe (une courbe par groupe — deux groupes qui partagent une offre se chevauchent, ne pas additionner leurs valeurs) ;
+- évolution par datastore (une courbe par datastore).
+
+Ces graphiques suivent le filtre Groupe mais pas les filtres Datastore/Type de service, comme les répartitions ci-dessus. Les mêmes huit graphiques figurent dans l'export XLSX (feuille Dashboard).
 
 ## 8. Exporter
 

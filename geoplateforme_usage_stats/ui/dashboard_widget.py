@@ -302,6 +302,26 @@ class DashboardWidget(QWidget):
                 3, 1,
             )
 
+        OFFERING_BREAKDOWN_TOP_N = 15
+        if offering_item_series:
+            periods_o, offering_hits_by_label = dashboard_service.grouped_time_evolution(offering_item_series, "hits", top_n=OFFERING_BREAKDOWN_TOP_N)
+            _, offering_volume_by_label = dashboard_service.grouped_time_evolution(offering_item_series, "data_transfer", top_n=OFFERING_BREAKDOWN_TOP_N)
+            offering_caption = f"Une ligne par offering - limité aux {OFFERING_BREAKDOWN_TOP_N} plus gros par hits (voir « Top 15 offerings » ci-dessus pour le classement complet)."
+            self.chart_layout.addWidget(
+                self._chart_with_caption(
+                    make_multi_line_chart(periods_o, offering_hits_by_label, f"Évolution des hits par offering (Top {OFFERING_BREAKDOWN_TOP_N})", "Hits"),
+                    offering_caption,
+                ),
+                4, 0,
+            )
+            self.chart_layout.addWidget(
+                self._chart_with_caption(
+                    make_multi_line_chart(periods_o, offering_volume_by_label, f"Évolution du volume par offering (Top {OFFERING_BREAKDOWN_TOP_N})", "Octets"),
+                    offering_caption,
+                ),
+                4, 1,
+            )
+
         group_rows_all = [r for r in series_all if r.series_level == "user_group"]
         if group_rows_all:
             periods_g, group_hits_by_label = dashboard_service.grouped_time_evolution(group_rows_all, "hits")
@@ -312,14 +332,14 @@ class DashboardWidget(QWidget):
                     make_multi_line_chart(periods_g, group_hits_by_label, "Évolution des hits par groupe", "Hits"),
                     group_caption,
                 ),
-                4, 0,
+                5, 0,
             )
             self.chart_layout.addWidget(
                 self._chart_with_caption(
                     make_multi_line_chart(periods_g, group_volume_by_label, "Évolution du volume par groupe", "Octets"),
                     group_caption,
                 ),
-                4, 1,
+                5, 1,
             )
 
         if datastore_rows:
@@ -331,14 +351,14 @@ class DashboardWidget(QWidget):
                     make_multi_line_chart(periods_d, datastore_hits_by_label, "Évolution des hits par datastore", "Hits"),
                     datastore_caption,
                 ),
-                5, 0,
+                6, 0,
             )
             self.chart_layout.addWidget(
                 self._chart_with_caption(
                     make_multi_line_chart(periods_d, datastore_volume_by_label, "Évolution du volume par datastore", "Octets"),
                     datastore_caption,
                 ),
-                5, 1,
+                6, 1,
             )
 
     def _chart_with_caption(self, chart_widget, caption_text: str) -> QWidget:

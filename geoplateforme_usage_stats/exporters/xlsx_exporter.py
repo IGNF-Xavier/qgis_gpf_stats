@@ -245,11 +245,11 @@ def _dashboard_sheet(wb, context: ExportContext):
             caption="Somme des hits/volume par période, offerings uniquement (unité atomique) - le regroupement jour/semaine/mois vient de la période choisie lors de l'interrogation.",
         ) + 2
 
-    def _grouped_evolution_table(title: str, series_rows: list, metric: str, caption: str):
-        """One column per series_key (group/datastore), for a multi-line
-        chart - unlike the offerings evolution above, which sums everything
-        into a single line."""
-        periods, values_by_label = dashboard_service.grouped_time_evolution(series_rows, metric)
+    def _grouped_evolution_table(title: str, series_rows: list, metric: str, caption: str, top_n=None):
+        """One column per series_key (offering/group/datastore), for a
+        multi-line chart - unlike the offerings evolution above, which sums
+        everything into a single line."""
+        periods, values_by_label = dashboard_service.grouped_time_evolution(series_rows, metric, top_n=top_n)
         if not values_by_label:
             return None, [], []
         nonlocal next_row
@@ -259,6 +259,19 @@ def _dashboard_sheet(wb, context: ExportContext):
         next_row = _write_table(ws, next_row, 1, title, ["period_key", *labels], rows, caption=caption) + 2
         return start_row, labels, rows
 
+    OFFERING_BREAKDOWN_TOP_N = 15
+    offering_breakdown_caption = (
+        f"Une colonne par offering - limité aux {OFFERING_BREAKDOWN_TOP_N} plus gros par hits "
+        "(voir « Top 15 offerings » ci-dessous pour le classement complet)."
+    )
+    offering_hits_start, offering_hits_labels, offering_hits_rows = _grouped_evolution_table(
+        f"Évolution des hits par offering (Top {OFFERING_BREAKDOWN_TOP_N})", offering_series, "hits",
+        offering_breakdown_caption, top_n=OFFERING_BREAKDOWN_TOP_N,
+    )
+    offering_volume_start, offering_volume_labels, offering_volume_rows = _grouped_evolution_table(
+        f"Évolution du volume transféré par offering (Top {OFFERING_BREAKDOWN_TOP_N})", offering_series, "data_transfer",
+        offering_breakdown_caption, top_n=OFFERING_BREAKDOWN_TOP_N,
+    )
     group_hits_start, group_hits_labels, group_hits_rows = _grouped_evolution_table(
         "Évolution des hits par groupe", group_series_rows, "hits",
         "Une colonne par groupe - deux groupes qui partagent une offre se chevauchent, ne pas additionner leurs valeurs.",
@@ -381,6 +394,21 @@ def _dashboard_sheet(wb, context: ExportContext):
         volume_chart.title = "Évolution du volume transféré (offerings)"
         volume_chart.y_axis.title = "Octets"
         _add_bar_or_pie(volume_chart, 3, evolution_start, len(evolution_rows), f"I{i_chart_row}", height=8)
+        i_chart_row += CHART_STEP
+
+    if offering_hits_start is not None:
+        chart = LineChart()
+        chart.title = f"Évolution des hits par offering (Top {OFFERING_BREAKDOWN_TOP_N})"
+        chart.y_axis.title = "Hits"
+        chart.x_axis.title = "Période"
+        _add_multi_line(chart, 2, 1 + len(offering_hits_labels), offering_hits_start, len(offering_hits_rows), f"I{i_chart_row}", height=8)
+        i_chart_row += CHART_STEP
+
+    if offering_volume_start is not None:
+        chart = LineChart()
+        chart.title = f"Évolution du volume transféré par offering (Top {OFFERING_BREAKDOWN_TOP_N})"
+        chart.y_axis.title = "Octets"
+        _add_multi_line(chart, 2, 1 + len(offering_volume_labels), offering_volume_start, len(offering_volume_rows), f"I{i_chart_row}", height=8)
         i_chart_row += CHART_STEP
 
     if group_hits_start is not None:

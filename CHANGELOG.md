@@ -2,6 +2,11 @@
 
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [7.4.1] - 2026-09-30
+
+### Ajouté
+- **Évolution des hits/volume par offering** (dashboard et export XLSX) : une ligne par offering, aux côtés des évolutions par groupe et par datastore ajoutées en 7.4.0. Limitée aux 15 offerings avec le plus de hits (comme le classement « Top 15 offerings » déjà existant), pour rester lisible sur un compte avec de nombreux offerings.
+
 ## [7.4.0] - 2026-09-30
 
 ### Ajouté
