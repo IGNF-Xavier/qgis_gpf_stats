@@ -2,6 +2,11 @@
 
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [7.4.2] - 2026-09-30
+
+### Corrigé
+- **Onglet Producteur : le type de service n'était visible qu'en infobulle**, rendant impossible de distinguer d'un coup d'œil un offering WFS d'un offering DOWNLOAD ou WMS dans l'arborescence (ou la liste sélectionnée). Le type s'affiche désormais entre crochets à côté du nom - par exemple « BAN PLUS · IGN Adresse [WFS] ». Corrige au passage la recherche : le champ annonçait « nom, datastore, type » mais ne filtrait pas réellement sur le type puisqu'il ne figurait pas dans le texte affiché.
+
 ## [7.4.1] - 2026-09-30
 
 ### Ajouté

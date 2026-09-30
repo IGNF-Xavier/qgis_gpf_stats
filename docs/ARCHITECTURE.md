@@ -1,4 +1,4 @@
-# Architecture — 7.4.1
+# Architecture — 7.4.2
 
 ## Objectif de la réécriture
 

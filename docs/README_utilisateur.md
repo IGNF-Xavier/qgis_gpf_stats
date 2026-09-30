@@ -1,9 +1,9 @@
-# Statistiques analytiques Géoplateforme — 7.4.1 — Guide utilisateur
+# Statistiques analytiques Géoplateforme — 7.4.2 — Guide utilisateur
 
 ## 1. Installation
 
 1. Dans QGIS : **Extensions → Installer/Gérer les extensions → Installer depuis un ZIP**.
-2. Sélectionnez `geoplateforme_usage_stats_plugin_7.4.1.zip`.
+2. Sélectionnez `geoplateforme_usage_stats_plugin_7.4.2.zip`.
 3. Activez l'extension. Un menu **Statistiques analytiques Géoplateforme** apparaît dans **Extensions**.
 
 Prérequis : QGIS 3.40 ou supérieur (testé sur 3.40.4). Aucune dépendance à installer séparément (voir `DEPENDANCES.md`).
@@ -52,7 +52,7 @@ Deux onglets :
   - `🧩 Offerings` → par datastore ;
   - `🔑 Permissions producteur` → par datastore.
 
-  Double-cliquer un objet le coche (préfixe `✓`, en gras) et l'ajoute à la liste de droite ; double-cliquer à nouveau (dans l'arbre ou dans la liste de droite) le retire. Les boutons `>>>` / `<<<` ne portent que sur ce qui est sélectionné (surligné) dans l'arbre ou la liste ; `>>` / `<<` portent sur tout ce qui est visible. La recherche filtre l'arbre en conservant la structure (une catégorie/datastore reste visible tant qu'au moins un de ses objets correspond). Les UUID restent en info-bulle.
+  Double-cliquer un objet le coche (préfixe `✓`, en gras) et l'ajoute à la liste de droite ; double-cliquer à nouveau (dans l'arbre ou dans la liste de droite) le retire. Les boutons `>>>` / `<<<` ne portent que sur ce qui est sélectionné (surligné) dans l'arbre ou la liste ; `>>` / `<<` portent sur tout ce qui est visible. La recherche filtre l'arbre en conservant la structure (une catégorie/datastore reste visible tant qu'au moins un de ses objets correspond) et porte aussi bien sur le nom, le datastore que sur le type de service. Le type de service (WFS, WMS-VECTOR, DOWNLOAD…) s'affiche entre crochets à côté du nom de chaque offering/endpoint/permission producteur, pour les distinguer sans avoir à survoler chacun. Les UUID restent en info-bulle.
 
 **Pourquoi autant d'endpoints ?** Un datastore peut avoir une dizaine d'endpoints (un par service technique possible : WMTS, WFS, CSW, téléchargement, itinéraire…) même si peu d'offres y sont réellement raccordées — chaque endpoint affiche son usage réel entre parenthèses, par exemple `(4/10 offre(s) raccordée(s))`. La case **« Masquer les endpoints sans offre raccordée (usage = 0) »**, au-dessus des onglets, permet de ne garder que les endpoints réellement utilisés. Voir aussi le **Glossaire** (bouton en bas de fenêtre) pour la définition complète.
 

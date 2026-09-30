@@ -41,6 +41,17 @@ DATASTORE_GROUPED_CATEGORIES = {"endpoint", "offering", "producer_permission"}
 SELECTED_PREFIX = "✓ "
 
 
+def _display_label(entry) -> str:
+    """Appends the service type (WFS, DOWNLOAD, WMS-VECTOR...) to the label
+    shown in the tree/list - previously visible only in the tooltip, which
+    meant telling offerings of different service types apart required
+    hovering each one individually."""
+    service_type = getattr(entry, "service_type", "")
+    if not service_type or getattr(entry, "kind", "") == "user_group":
+        return entry.label
+    return f"{entry.label} [{service_type}]"
+
+
 def _tooltip_for(entry) -> str:
     parts = [f"UUID : {entry.item_id}"]
     if getattr(entry, "datastore_name", ""):
@@ -170,7 +181,7 @@ class ProducerTreeSelector(QWidget):
         return font
 
     def _add_leaf(self, parent: QTreeWidgetItem, entry) -> QTreeWidgetItem:
-        item = QTreeWidgetItem([entry.label])
+        item = QTreeWidgetItem([_display_label(entry)])
         item.setData(0, Qt.UserRole, entry)
         item.setToolTip(0, _tooltip_for(entry))
         parent.addChild(item)
@@ -188,7 +199,7 @@ class ProducerTreeSelector(QWidget):
             return
         for offering_id in group.offering_ids:
             offering = self._offerings_by_id.get(offering_id)
-            label = offering.label if offering else f"offering {offering_id} (hors catalogue chargé)"
+            label = _display_label(offering) if offering else f"offering {offering_id} (hors catalogue chargé)"
             preview = QTreeWidgetItem([f"· {label}"])
             preview.setFlags(Qt.NoItemFlags)
             preview.setForeground(0, QColor("#888888"))
@@ -197,7 +208,7 @@ class ProducerTreeSelector(QWidget):
     # -- selection state ---------------------------------------------------
     def _leaf_style(self, item: QTreeWidgetItem, entry) -> None:
         selected = entry.item_id in self._selected_by_id
-        item.setText(0, (SELECTED_PREFIX if selected else "") + entry.label)
+        item.setText(0, (SELECTED_PREFIX if selected else "") + _display_label(entry))
         font = item.font(0)
         font.setBold(selected)
         item.setFont(0, font)
@@ -211,7 +222,7 @@ class ProducerTreeSelector(QWidget):
     def _rebuild_selected_list(self) -> None:
         self.selected_list.clear()
         for entry in sorted(self._selected_by_id.values(), key=lambda e: e.label.casefold()):
-            item = QListWidgetItem(entry.label)
+            item = QListWidgetItem(_display_label(entry))
             item.setData(Qt.UserRole, entry)
             item.setToolTip(_tooltip_for(entry))
             self.selected_list.addItem(item)
