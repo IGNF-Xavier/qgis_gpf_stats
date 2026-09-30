@@ -59,3 +59,29 @@ def test_ranking_and_time_evolution():
     ]
     assert dash.time_evolution(rows, "hits") == [("2026-08-24", 30), ("2026-08-25", 5)]
     assert dash.ranking(rows, "hits") == [("Offre 2", 20), ("Offre 1", 15)]
+
+
+def test_grouped_time_evolution_keeps_one_line_per_series_key():
+    from geoplateforme_usage_stats.core.models import SeriesRow
+
+    rows = [
+        SeriesRow("datastore", "ds-1", "Datastore 1", "2026-08-24", "day", 10, 100),
+        SeriesRow("datastore", "ds-1", "Datastore 1", "2026-08-25", "day", 5, 50),
+        SeriesRow("datastore", "ds-2", "Datastore 2", "2026-08-24", "day", 20, 200),
+    ]
+    periods, series_by_label = dash.grouped_time_evolution(rows, "hits")
+    assert periods == ["2026-08-24", "2026-08-25"]
+    # Ordered by total descending: Datastore 2 (20) before Datastore 1 (15).
+    assert list(series_by_label.items()) == [("Datastore 2", [20, 0]), ("Datastore 1", [10, 5])]
+
+
+def test_grouped_time_evolution_top_n_keeps_highest_totals_only():
+    from geoplateforme_usage_stats.core.models import SeriesRow
+
+    rows = [
+        SeriesRow("datastore", "ds-1", "Datastore 1", "2026-08-24", "day", 10, 0),
+        SeriesRow("datastore", "ds-2", "Datastore 2", "2026-08-24", "day", 20, 0),
+        SeriesRow("datastore", "ds-3", "Datastore 3", "2026-08-24", "day", 5, 0),
+    ]
+    _, series_by_label = dash.grouped_time_evolution(rows, "hits", top_n=2)
+    assert set(series_by_label) == {"Datastore 2", "Datastore 1"}

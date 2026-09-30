@@ -109,6 +109,32 @@ def time_evolution(series_rows: Iterable[SeriesRow], metric: str = "hits") -> li
     return sorted(totals.items())
 
 
+def grouped_time_evolution(
+    series_rows: Iterable[SeriesRow], metric: str = "hits", top_n: Optional[int] = None,
+) -> tuple[list[str], dict[str, list[int]]]:
+    """Like :func:`time_evolution`, but keeps one aligned value list per
+    ``series_key`` instead of summing every row into a single line - for a
+    multi-line "evolution by group" / "evolution by datastore" chart, where
+    collapsing everything into one line would just reproduce the offerings
+    total and hide which group/datastore drives it.
+
+    ``top_n`` keeps only the series with the highest total (by the same
+    metric) - unbounded by default, since groups/datastores are typically
+    few enough to all fit on one chart, unlike individual offerings.
+    """
+    totals: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    labels: dict[str, str] = {}
+    for row in series_rows:
+        totals[row.series_key][row.period_key] += getattr(row, metric)
+        labels[row.series_key] = row.label
+    periods = sorted({period for per_key in totals.values() for period in per_key})
+    ordered_keys = sorted(totals, key=lambda key: sum(totals[key].values()), reverse=True)
+    if top_n is not None:
+        ordered_keys = ordered_keys[:top_n]
+    series_by_label = {labels[key]: [totals[key].get(period, 0) for period in periods] for key in ordered_keys}
+    return periods, series_by_label
+
+
 def ranking(series_rows: Iterable[SeriesRow], metric: str = "hits", top_n: Optional[int] = 15) -> list[tuple[str, int]]:
     totals: dict[str, int] = defaultdict(int)
     labels: dict[str, str] = {}

@@ -70,6 +70,53 @@ class _FallbackLineChart(QWidget):
         painter.drawText(QRectF(2, rect.top() - 4, 46, 16), Qt.AlignRight, str(max_value))
 
 
+class _FallbackMultiLineChart(QWidget):
+    def __init__(self, periods: list[str], series_by_label: dict, title: str, y_label: str, parent=None):
+        super().__init__(parent)
+        self._periods = periods
+        self._series_by_label = series_by_label
+        self._title = title
+        self._y_label = y_label
+        self.setMinimumHeight(280)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+    def paintEvent(self, _event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        legend_width = 130
+        rect = self.rect().adjusted(50, 30, -legend_width, -40)
+        painter.setFont(QFont(self.font().family(), 9, QFont.Bold))
+        painter.drawText(self.rect().adjusted(0, 4, 0, 0), Qt.AlignHCenter | Qt.AlignTop, self._title)
+        if not self._periods or not self._series_by_label:
+            painter.drawText(rect, Qt.AlignCenter, "Aucune donnée")
+            return
+        max_value = max((v for values in self._series_by_label.values() for v in values), default=0) or 1
+        painter.setPen(QPen(QColor("#CCCCCC")))
+        painter.drawRect(rect)
+        step_x = rect.width() / max(1, len(self._periods) - 1) if len(self._periods) > 1 else 0
+        for index, (label, values) in enumerate(self._series_by_label.items()):
+            color = QColor(PALETTE[index % len(PALETTE)])
+            points = [QPointF(rect.left() + i * step_x, rect.bottom() - (v / max_value) * rect.height()) for i, v in enumerate(values)]
+            painter.setPen(QPen(color, 2))
+            for a, b in zip(points, points[1:]):
+                painter.drawLine(a, b)
+        painter.setFont(QFont(self.font().family(), 7))
+        painter.setPen(QPen(QColor("#555555")))
+        label_stride = max(1, len(self._periods) // 8)
+        for index, period in enumerate(self._periods):
+            if index % label_stride:
+                continue
+            x = rect.left() + index * step_x
+            painter.drawText(QRectF(x - 30, rect.bottom() + 2, 60, 16), Qt.AlignHCenter, str(period))
+        painter.drawText(QRectF(2, rect.top() - 4, 46, 16), Qt.AlignRight, str(max_value))
+        legend_x = rect.right() + 10
+        painter.setFont(QFont(self.font().family(), 8))
+        for index, label in enumerate(self._series_by_label):
+            y = rect.top() + index * 16
+            painter.fillRect(QRectF(legend_x, y, 10, 10), QColor(PALETTE[index % len(PALETTE)]))
+            painter.drawText(QRectF(legend_x + 14, y - 2, legend_width - 16, 16), Qt.AlignLeft, _elide(label, 16))
+
+
 class _FallbackBarChart(QWidget):
     def __init__(self, values: list[tuple[str, int]], title: str, parent=None):
         super().__init__(parent)
@@ -159,6 +206,38 @@ def make_line_chart(series: list[tuple[str, int]], title: str, y_label: str = ""
     chart.addAxis(axis_y, Qt.AlignLeft)
     line.attachAxis(axis_y)
     chart.legend().hide()
+    view = QChartView(chart)
+    view.setRenderHint(QPainter.Antialiasing)
+    return view
+
+
+def make_multi_line_chart(periods: list[str], series_by_label: dict, title: str, y_label: str = "") -> QWidget:
+    """One line per key in ``series_by_label`` (already aligned to
+    ``periods``), with a visible legend - unlike :func:`make_line_chart`,
+    which only ever draws a single unlabelled line."""
+    if not periods or not series_by_label:
+        return _empty_label()
+    if not QTCHART_AVAILABLE:
+        return _FallbackMultiLineChart(periods, series_by_label, title, y_label)
+    chart = QChart()
+    chart.setTitle(title)
+    axis_x = QBarCategoryAxis()
+    axis_x.append([str(period) for period in periods])
+    axis_y = QValueAxis()
+    axis_y.setTitleText(y_label)
+    chart.addAxis(axis_x, Qt.AlignBottom)
+    chart.addAxis(axis_y, Qt.AlignLeft)
+    for index, (label, values) in enumerate(series_by_label.items()):
+        line = QLineSeries()
+        line.setName(_elide(label, 24))
+        line.setColor(QColor(PALETTE[index % len(PALETTE)]))
+        for position, value in enumerate(values):
+            line.append(position, value)
+        chart.addSeries(line)
+        line.attachAxis(axis_x)
+        line.attachAxis(axis_y)
+    chart.legend().setVisible(True)
+    chart.legend().setAlignment(Qt.AlignRight)
     view = QChartView(chart)
     view.setRenderHint(QPainter.Antialiasing)
     return view

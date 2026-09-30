@@ -1,4 +1,4 @@
-# Architecture — 7.3.0
+# Architecture — 7.4.0
 
 ## Objectif de la réécriture
 
@@ -56,7 +56,7 @@ geoplateforme_usage_stats/
 
 ## Pourquoi cette séparation
 
-- **`core/` ne dépend jamais de Qt.** Toute règle métier (couverture, agrégation, KPI, groupes, période, cache) est donc testable avec `pytest` seul, sans QGIS installé — c'est ce qui a permis d'écrire les 90 tests unitaires du dépôt sans environnement QGIS.
+- **`core/` ne dépend jamais de Qt.** Toute règle métier (couverture, agrégation, KPI, groupes, période, cache) est donc testable avec `pytest` seul, sans QGIS installé — c'est ce qui a permis d'écrire les 92 tests unitaires du dépôt sans environnement QGIS.
 - **`net/` isole le seul point de contact avec le réseau** derrière un protocole `Transport` (une méthode `request(path, params) -> TransportResponse`). Les tests utilisent un `FakeTransport` ; l'exécution réelle utilise `QgsTransport` (QgsNetworkAccessManager + gestionnaire d'authentification QGIS, proxys et paramètres réseau QGIS respectés).
 - **`workers/` est la seule couche qui touche aux threads.** `QgsTask` exécute `core`/`net` en tâche de fond et ne communique avec l'UI que par signaux Qt (`stepProgress`, `loaded`/`failed`, `finishedWithResults`) — jamais d'appel direct à un widget depuis le thread de travail.
 - **`ui/` ne fait qu'assembler.** `main_dialog.py` ne recalcule rien lui-même : il appelle `core.group_service`, `core.export_context`, `net.catalog_service`/`stats_service` via les workers, et reflète le résultat dans les widgets.
@@ -80,6 +80,8 @@ Indépendant du catalogue de statistiques : `DatastoreInfoTab` déclenche lui-m�
 ## Dashboard et exports : une seule source de vérité
 
 `core.export_context.build_export_context()` est appelé à la fois par les exports CSV/XLSX et (indirectement, via les mêmes fonctions `core.aggregation_service`/`core.dashboard_service`) par l'onglet Dashboard. Les deux ne peuvent donc pas diverger. La règle centrale — ne jamais mélanger deux niveaux d'analyse dans un même total — est appliquée une seule fois, dans `core.dashboard_service`, et respectée partout ailleurs.
+
+`core.dashboard_service.time_evolution()` réduit une série à une seule courbe agrégée (utilisé pour l'évolution des offerings, unité atomique). `grouped_time_evolution()` en est la variante multi-courbes : elle conserve une liste de valeurs par `series_key` au lieu de tout sommer, pour les évolutions « par groupe » et « par datastore » où une courbe unique reproduirait simplement le total des offerings. Le rendu correspondant, `charts.chart_widgets.make_multi_line_chart()`, suit le même repli QtChart/QPainter que les autres graphiques et affiche une légende (contrairement à `make_line_chart()`, mono-courbe, dont la légende reste cachée). Le même triplet de graphiques (offerings/groupe/datastore, hits et volume) est câblé indépendamment dans `ui.dashboard_widget` (toujours visible, quel que soit le niveau sélectionné dans les filtres) et dans `exporters.xlsx_exporter._dashboard_sheet` (tables larges - une colonne par groupe/datastore - consommées par un `LineChart` openpyxl via `titles_from_data=True`, qui prend directement les noms de colonnes comme légende).
 
 ## Pourquoi les groupes ne sont pas de simples filtres
 

@@ -245,6 +245,37 @@ def _dashboard_sheet(wb, context: ExportContext):
             caption="Somme des hits/volume par période, offerings uniquement (unité atomique) - le regroupement jour/semaine/mois vient de la période choisie lors de l'interrogation.",
         ) + 2
 
+    def _grouped_evolution_table(title: str, series_rows: list, metric: str, caption: str):
+        """One column per series_key (group/datastore), for a multi-line
+        chart - unlike the offerings evolution above, which sums everything
+        into a single line."""
+        periods, values_by_label = dashboard_service.grouped_time_evolution(series_rows, metric)
+        if not values_by_label:
+            return None, [], []
+        nonlocal next_row
+        labels = list(values_by_label)
+        rows = [(period, *(values_by_label[label][i] for label in labels)) for i, period in enumerate(periods)]
+        start_row = next_row
+        next_row = _write_table(ws, next_row, 1, title, ["period_key", *labels], rows, caption=caption) + 2
+        return start_row, labels, rows
+
+    group_hits_start, group_hits_labels, group_hits_rows = _grouped_evolution_table(
+        "Évolution des hits par groupe", group_series_rows, "hits",
+        "Une colonne par groupe - deux groupes qui partagent une offre se chevauchent, ne pas additionner leurs valeurs.",
+    )
+    group_volume_start, group_volume_labels, group_volume_rows = _grouped_evolution_table(
+        "Évolution du volume transféré par groupe", group_series_rows, "data_transfer",
+        "Une colonne par groupe - deux groupes qui partagent une offre se chevauchent, ne pas additionner leurs valeurs.",
+    )
+    datastore_hits_start, datastore_hits_labels, datastore_hits_rows = _grouped_evolution_table(
+        "Évolution des hits par datastore", datastore_series, "hits",
+        "Une colonne par datastore, toujours calculée à partir des offerings (unité atomique).",
+    )
+    datastore_volume_start, datastore_volume_labels, datastore_volume_rows = _grouped_evolution_table(
+        "Évolution du volume transféré par datastore", datastore_series, "data_transfer",
+        "Une colonne par datastore, toujours calculée à partir des offerings (unité atomique).",
+    )
+
     top_offerings, top_offerings_start = [], None
     if offering_series:
         top_offerings = dashboard_service.ranking(offering_series, "hits", top_n=15)
@@ -323,6 +354,21 @@ def _dashboard_sheet(wb, context: ExportContext):
         chart.width, chart.height = width, height
         ws.add_chart(chart, anchor)
 
+    def _add_multi_line(chart, min_col, max_col, start_row, count, anchor, width=20, height=10):
+        # Unlike _add_bar_or_pie (one fixed data column), a multi-line chart
+        # takes a column *range* whose header row (titles_from_data=True)
+        # becomes each series' name - openpyxl needs no manual title
+        # references for that part.
+        chart.add_data(
+            Reference(ws, min_col=min_col, max_col=max_col, min_row=start_row + 1, max_row=start_row + 1 + count),
+            titles_from_data=True,
+        )
+        category_ref = Reference(ws, min_col=1, min_row=start_row + 2, max_row=start_row + 1 + count)
+        for series in chart.series:
+            series.cat = AxDataSource(strRef=StrRef(f=category_ref))
+        chart.width, chart.height = width, height
+        ws.add_chart(chart, anchor)
+
     if evolution_rows:
         hits_chart = LineChart()
         hits_chart.title = "Évolution des hits (offerings)"
@@ -335,6 +381,36 @@ def _dashboard_sheet(wb, context: ExportContext):
         volume_chart.title = "Évolution du volume transféré (offerings)"
         volume_chart.y_axis.title = "Octets"
         _add_bar_or_pie(volume_chart, 3, evolution_start, len(evolution_rows), f"I{i_chart_row}", height=8)
+        i_chart_row += CHART_STEP
+
+    if group_hits_start is not None:
+        chart = LineChart()
+        chart.title = "Évolution des hits par groupe"
+        chart.y_axis.title = "Hits"
+        chart.x_axis.title = "Période"
+        _add_multi_line(chart, 2, 1 + len(group_hits_labels), group_hits_start, len(group_hits_rows), f"I{i_chart_row}", height=8)
+        i_chart_row += CHART_STEP
+
+    if group_volume_start is not None:
+        chart = LineChart()
+        chart.title = "Évolution du volume transféré par groupe"
+        chart.y_axis.title = "Octets"
+        _add_multi_line(chart, 2, 1 + len(group_volume_labels), group_volume_start, len(group_volume_rows), f"I{i_chart_row}", height=8)
+        i_chart_row += CHART_STEP
+
+    if datastore_hits_start is not None:
+        chart = LineChart()
+        chart.title = "Évolution des hits par datastore"
+        chart.y_axis.title = "Hits"
+        chart.x_axis.title = "Période"
+        _add_multi_line(chart, 2, 1 + len(datastore_hits_labels), datastore_hits_start, len(datastore_hits_rows), f"I{i_chart_row}", height=8)
+        i_chart_row += CHART_STEP
+
+    if datastore_volume_start is not None:
+        chart = LineChart()
+        chart.title = "Évolution du volume transféré par datastore"
+        chart.y_axis.title = "Octets"
+        _add_multi_line(chart, 2, 1 + len(datastore_volume_labels), datastore_volume_start, len(datastore_volume_rows), f"I{i_chart_row}", height=8)
         i_chart_row += CHART_STEP
 
     if top_offerings:

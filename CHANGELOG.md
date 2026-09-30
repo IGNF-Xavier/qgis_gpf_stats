@@ -2,6 +2,16 @@
 
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [7.4.0] - 2026-09-30
+
+### Ajouté
+- **Dashboard (onglet et export XLSX) : trois graphiques d'évolution temporelle toujours visibles**, pour hits ET volume transféré (6 graphiques), indépendants du niveau d'analyse sélectionné dans les filtres :
+  - **Évolution des offerings** : somme agrégée sur l'ensemble des offerings interrogés (comme avant, mais visible en permanence plutôt que seulement quand « Offerings » est sélectionné).
+  - **Évolution par groupe** : une ligne par groupe utilisateur.
+  - **Évolution par datastore** : une ligne par datastore.
+  
+  Ces trois graphiques respectent le filtre Groupe (offerings/datastore restreints au groupe sélectionné) mais pas les filtres Datastore/Type de service, pour rester une vue d'ensemble cohérente comme les répartitions déjà existantes.
+
 ## [7.3.2] - 2026-09-29
 
 ### Ajouté

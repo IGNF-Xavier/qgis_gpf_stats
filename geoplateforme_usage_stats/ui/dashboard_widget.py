@@ -16,7 +16,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..charts.chart_widgets import make_bar_chart, make_line_chart, make_pie_chart
+from ..charts.chart_widgets import make_bar_chart, make_line_chart, make_multi_line_chart, make_pie_chart
 from ..core import aggregation_service, dashboard_service
 from ..core.coverage_service import assess_coverage
 from ..core.models import OFFERING
@@ -280,6 +280,66 @@ class DashboardWidget(QWidget):
             ),
             2, 0,
         )
+
+        # Dedicated, always-visible evolution charts (hits AND volume, unlike
+        # the metric-gated chart above) - independent of the level combo,
+        # since switching level there would otherwise hide these lenses.
+        group_scope_note = " (groupe sélectionné)." if selected_group is not None else "."
+        offering_item_series = aggregation_service.individual_series(offering_results, grain)
+        if offering_item_series:
+            self.chart_layout.addWidget(
+                self._chart_with_caption(
+                    make_line_chart(dashboard_service.time_evolution(offering_item_series, "hits"), "Évolution des hits (offerings)", "Hits"),
+                    "Somme des hits par période, sur l'ensemble des offerings interrogés" + group_scope_note,
+                ),
+                3, 0,
+            )
+            self.chart_layout.addWidget(
+                self._chart_with_caption(
+                    make_line_chart(dashboard_service.time_evolution(offering_item_series, "data_transfer"), "Évolution du volume transféré (offerings)", "Octets"),
+                    "Somme du volume transféré par période, sur l'ensemble des offerings interrogés" + group_scope_note,
+                ),
+                3, 1,
+            )
+
+        group_rows_all = [r for r in series_all if r.series_level == "user_group"]
+        if group_rows_all:
+            periods_g, group_hits_by_label = dashboard_service.grouped_time_evolution(group_rows_all, "hits")
+            _, group_volume_by_label = dashboard_service.grouped_time_evolution(group_rows_all, "data_transfer")
+            group_caption = "Une ligne par groupe utilisateur - deux groupes qui partagent une offre se chevauchent, ne pas additionner leurs valeurs."
+            self.chart_layout.addWidget(
+                self._chart_with_caption(
+                    make_multi_line_chart(periods_g, group_hits_by_label, "Évolution des hits par groupe", "Hits"),
+                    group_caption,
+                ),
+                4, 0,
+            )
+            self.chart_layout.addWidget(
+                self._chart_with_caption(
+                    make_multi_line_chart(periods_g, group_volume_by_label, "Évolution du volume par groupe", "Octets"),
+                    group_caption,
+                ),
+                4, 1,
+            )
+
+        if datastore_rows:
+            periods_d, datastore_hits_by_label = dashboard_service.grouped_time_evolution(datastore_rows, "hits")
+            _, datastore_volume_by_label = dashboard_service.grouped_time_evolution(datastore_rows, "data_transfer")
+            datastore_caption = "Une ligne par datastore, toujours calculée à partir des offerings" + group_scope_note
+            self.chart_layout.addWidget(
+                self._chart_with_caption(
+                    make_multi_line_chart(periods_d, datastore_hits_by_label, "Évolution des hits par datastore", "Hits"),
+                    datastore_caption,
+                ),
+                5, 0,
+            )
+            self.chart_layout.addWidget(
+                self._chart_with_caption(
+                    make_multi_line_chart(periods_d, datastore_volume_by_label, "Évolution du volume par datastore", "Octets"),
+                    datastore_caption,
+                ),
+                5, 1,
+            )
 
     def _chart_with_caption(self, chart_widget, caption_text: str) -> QWidget:
         container = QWidget()
